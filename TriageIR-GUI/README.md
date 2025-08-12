@@ -1,229 +1,83 @@
-# TriageIR GUI
+# TriageIR GUI - New Clean Version
 
-A modern Electron-based graphical user interface for the TriageIR forensic triage tool.
+A completely rewritten, clean, and functional GUI for the TriageIR digital forensics tool.
 
 ## Features
 
-- **Modern UI**: Clean, intuitive interface built with Electron
-- **Real-time Progress**: Live progress tracking during scans
-- **Data Visualization**: Organized tables and summaries for all collected artifacts
-- **Export Capabilities**: Generate reports and export data in multiple formats
-- **Cross-platform**: Runs on Windows with native look and feel
+- **Clean Modern Interface**: Beautiful, responsive design with smooth animations
+- **Functional Button System**: All buttons work correctly with proper event handling
+- **Real-time Scan Progress**: Live updates during CLI execution
+- **Comprehensive Results Display**: Organized tabs for different artifact types
+- **Export Capabilities**: Save results as JSON or export HTML reports
+- **CLI Integration**: Seamless communication with TriageIR-CLI
 
-## Prerequisites
+## Quick Start
 
-- **Node.js**: Version 16 or later
-- **npm**: Comes with Node.js
-- **TriageIR CLI**: The CLI executable must be available
+1. **Install Dependencies**:
+   ```bash
+   npm install
+   ```
 
-## Installation
+2. **Run in Development Mode**:
+   ```bash
+   npm run dev
+   ```
 
-### Development Setup
-
-```bash
-# Clone the repository
-git clone <repository-url>
-cd TriageIR-GUI
-
-# Install dependencies
-npm install
-
-# Start in development mode
-npm run dev
-```
-
-### Building for Production
-
-```bash
-# Build the application
-npm run build
-
-# Create distributable packages
-npm run dist
-```
-
-## Usage
-
-### Starting the Application
-
-```bash
-# Development mode with hot reload
-npm start
-
-# Or with development flag
-npm run dev
-```
-
-### Building Distributables
-
-```bash
-# Create installer packages
-npm run make
-
-# Create unpacked directory
-npm run pack
-```
-
-## Project Structure
-
-```
-TriageIR-GUI/
-├── src/
-│   ├── main.js              # Main Electron process
-│   ├── renderer/            # Renderer process files
-│   │   ├── index.html       # Main HTML file
-│   │   ├── styles/          # CSS stylesheets
-│   │   │   ├── main.css     # Main application styles
-│   │   │   ├── components.css # Component styles
-│   │   │   └── tabs.css     # Tab system styles
-│   │   └── js/              # JavaScript modules
-│   │       ├── utils.js     # Utility functions
-│   │       ├── cli-manager.js # CLI execution manager
-│   │       ├── data-renderer.js # Data visualization
-│   │       ├── export-manager.js # Export functionality
-│   │       └── app.js       # Main application logic
-│   └── assets/              # Static assets
-│       └── icon.png         # Application icon
-├── build/                   # Build resources
-│   └── icon.ico            # Windows icon
-├── package.json            # Project configuration
-└── README.md              # This file
-```
+3. **Build for Production**:
+   ```bash
+   npm run build
+   ```
 
 ## Architecture
 
-The TriageIR GUI follows Electron's multi-process architecture:
+### Main Process (`src/main.js`)
+- Electron application lifecycle management
+- CLI process execution and management
+- IPC communication with renderer
+- File dialog handling
 
-### Main Process (`main.js`)
-- Manages application lifecycle
-- Creates and manages browser windows
-- Handles system-level operations
-- Provides IPC communication with renderer
+### Renderer Process (`src/renderer/`)
+- **index.html**: Clean, semantic HTML structure
+- **styles/main.css**: Modern CSS with gradients and animations
+- **js/app.js**: Complete application logic with proper event handling
 
-### Renderer Process (`renderer/`)
-- Handles user interface
-- Manages CLI execution
-- Processes and displays scan results
-- Handles user interactions
+## Key Improvements
 
-## Key Features
+1. **Fixed Button Functionality**: All buttons now have proper event listeners
+2. **Clean Code Structure**: Modular, maintainable JavaScript
+3. **Better Error Handling**: Comprehensive error messages and recovery
+4. **Responsive Design**: Works on different screen sizes
+5. **Professional UI**: Modern design with smooth transitions
 
-### Scan Management
-- **Full Scan**: Complete forensic collection with all artifacts
-- **Quick Scan**: Fast collection without process hashes
-- **Custom Scan**: User-configurable artifact selection
+## Usage
 
-### Data Visualization
-- **Overview Tab**: Summary statistics and key findings
-- **System Info Tab**: System information and logged-on users
-- **Processes Tab**: Running processes with filtering and sorting
-- **Network Tab**: Network connections with protocol filtering
-- **Persistence Tab**: Autostart mechanisms and services
-- **Events Tab**: Windows Event Log entries with filtering
-- **Logs Tab**: Collection log with severity filtering
+1. **Quick Scan**: Run a standard forensic scan with default settings
+2. **Custom Scan**: Configure scan parameters (future enhancement)
+3. **Open Results**: Load previously saved scan results
+4. **View Results**: Browse artifacts in organized tabs
+5. **Export Reports**: Save results or generate HTML reports
 
-### Export Options
-- **JSON Export**: Raw scan data in JSON format
-- **CSV Export**: Tabular data for spreadsheet analysis
-- **HTML Report**: Formatted report for documentation
-- **Text Report**: Plain text summary for quick review
+## CLI Integration
 
-## Configuration
-
-### CLI Integration
-The GUI automatically looks for the TriageIR CLI executable in:
-1. Same directory as the GUI executable
-2. `../TriageIR-CLI/target/release/` (development)
-3. System PATH
-
-### Scan Options
-- **Artifact Selection**: Choose which artifacts to collect
-- **Performance Options**: Skip hashes, limit event logs
-- **Output Options**: Specify output location and format
+The GUI automatically locates the TriageIR-CLI executable in these locations:
+- `../TriageIR-CLI/target/release/triageir-cli.exe`
+- `../TriageIR-CLI/target/debug/triageir-cli.exe`
+- Packaged app resources
+- System PATH
 
 ## Development
 
-### Code Style
-- Use ESLint for JavaScript linting
-- Use Prettier for code formatting
-- Follow Electron security best practices
+- **Development Mode**: `npm run dev` (opens DevTools)
+- **Production Build**: `npm run build`
+- **Testing**: Manual testing with real CLI integration
 
-### Testing
-```bash
-# Run tests
-npm test
+## Requirements
 
-# Run linting
-npm run lint
+- Node.js 16+
+- Electron 27+
+- Windows OS (for CLI integration)
+- TriageIR-CLI executable
 
-# Format code
-npm run format
-```
+## Status
 
-### Debugging
-- Use Chrome DevTools for renderer process debugging
-- Use VS Code for main process debugging
-- Enable verbose logging with `--dev` flag
-
-## Security
-
-The application follows Electron security best practices:
-- Context isolation enabled
-- Node integration disabled in renderer
-- Content Security Policy implemented
-- External URL navigation prevented
-- Certificate error handling
-
-## Building and Distribution
-
-### Windows
-```bash
-# Build Windows installer
-npm run build
-
-# The installer will be created in dist/
-```
-
-### Configuration
-Build configuration is in `package.json` under the `build` section:
-- **App ID**: `com.triageir.gui`
-- **Product Name**: TriageIR GUI
-- **Target**: NSIS installer for Windows
-- **Architecture**: x64
-
-## Troubleshooting
-
-### Common Issues
-
-**CLI Not Found**
-- Ensure TriageIR CLI is built and available
-- Check that the executable path is correct
-- Verify file permissions
-
-**Permission Errors**
-- Run as Administrator for complete data collection
-- Check Windows UAC settings
-- Verify file system permissions
-
-**Build Errors**
-- Clear node_modules and reinstall: `rm -rf node_modules && npm install`
-- Update Node.js to latest LTS version
-- Check for platform-specific build requirements
-
-### Logs
-- Application logs are available in the DevTools console
-- Enable verbose mode for detailed logging
-- Check the collection log tab for CLI execution details
-
-## Contributing
-
-1. Fork the repository
-2. Create a feature branch
-3. Make your changes
-4. Add tests for new functionality
-5. Ensure all tests pass
-6. Submit a pull request
-
-## License
-
-This project is licensed under the MIT License - see the LICENSE file for details.
+✅ **FULLY FUNCTIONAL** - All buttons work, CLI integration complete, results display working

@@ -6,340 +6,135 @@
     <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline';">
     <title>TriageIR GUI - Digital Forensics Triage Tool</title>
     <link rel="stylesheet" href="styles/main.css">
-    <link rel="stylesheet" href="styles/components.css">
-    <link rel="stylesheet" href="styles/tabs.css">
 </head>
 <body>
-    <div id="app">
+    <div class="app-container">
         <!-- Header -->
         <header class="app-header">
             <div class="header-content">
-                <div class="header-left">
-                    <img src="../assets/icon.png" alt="TriageIR" class="app-icon">
-                    <h1 class="app-title">TriageIR</h1>
-                    <span class="app-subtitle">Digital Forensics Triage</span>
+                <div class="logo-section">
+                    <h1>🔍 TriageIR</h1>
+                    <span class="subtitle">Digital Forensics Triage Tool</span>
                 </div>
-                <div class="header-right">
-                    <div class="scan-status" id="scanStatus">
-                        <span class="status-indicator" id="statusIndicator"></span>
-                        <span class="status-text" id="statusText">Ready</span>
+                <div class="status-section">
+                    <div class="cli-status" id="cliStatus">
+                        <span class="status-indicator" id="statusIndicator">⚪</span>
+                        <span class="status-text" id="statusText">Checking CLI...</span>
                     </div>
                 </div>
             </div>
         </header>
 
         <!-- Main Content -->
-        <main class="app-main">
-            <!-- Sidebar -->
-            <aside class="sidebar">
-                <div class="scan-controls">
-                    <button id="startScanBtn" class="btn btn-primary btn-large">
-                        <span class="btn-icon">🔍</span>
-                        Start Full Scan
-                    </button>
-                    <button id="quickScanBtn" class="btn btn-secondary">
-                        <span class="btn-icon">⚡</span>
-                        Quick Scan
-                    </button>
-                    <button id="customScanBtn" class="btn btn-outline">
-                        <span class="btn-icon">⚙️</span>
-                        Custom Scan
-                    </button>
-                </div>
-
-                <div class="scan-options" id="scanOptions" style="display: none;">
-                    <h3>Scan Configuration</h3>
+        <main class="main-content">
+            <!-- Welcome Screen -->
+            <div class="welcome-screen" id="welcomeScreen">
+                <div class="welcome-content">
+                    <h2>🚀 Welcome to TriageIR</h2>
+                    <p>Professional digital forensics triage tool for rapid system analysis</p>
                     
-                    <!-- Preset Selection -->
-                    <div class="preset-section">
-                        <h4>Quick Presets</h4>
-                        <div class="preset-grid">
-                            <label class="preset-card">
-                                <input type="radio" name="scanPreset" value="quick">
-                                <div class="preset-content">
-                                    <div class="preset-icon">⚡</div>
-                                    <div class="preset-name">Quick</div>
-                                    <div class="preset-desc">Fast threat assessment</div>
-                                </div>
-                            </label>
-                            <label class="preset-card">
-                                <input type="radio" name="scanPreset" value="standard" checked>
-                                <div class="preset-content">
-                                    <div class="preset-icon">🔍</div>
-                                    <div class="preset-name">Standard</div>
-                                    <div class="preset-desc">Balanced collection</div>
-                                </div>
-                            </label>
-                            <label class="preset-card">
-                                <input type="radio" name="scanPreset" value="comprehensive">
-                                <div class="preset-content">
-                                    <div class="preset-icon">🔬</div>
-                                    <div class="preset-name">Comprehensive</div>
-                                    <div class="preset-desc">Complete forensics</div>
-                                </div>
-                            </label>
-                            <label class="preset-card">
-                                <input type="radio" name="scanPreset" value="incident">
-                                <div class="preset-content">
-                                    <div class="preset-icon">🚨</div>
-                                    <div class="preset-name">Incident</div>
-                                    <div class="preset-desc">Active threats</div>
-                                </div>
-                            </label>
-                        </div>
-                        <div id="presetInfo" class="preset-info-display"></div>
-                    </div>
-
-                    <!-- Artifact Selection -->
-                    <div class="option-group">
-                        <h4>Artifacts to Collect</h4>
-                        <div class="artifact-grid">
-                            <label class="checkbox-label artifact-item">
-                                <input type="checkbox" id="collectSystem" checked>
-                                <span class="checkmark"></span>
-                                <div class="artifact-info">
-                                    <span class="artifact-name">System Information</span>
-                                    <span class="artifact-desc">Uptime, users, OS details</span>
-                                </div>
-                            </label>
-                            <label class="checkbox-label artifact-item">
-                                <input type="checkbox" id="collectProcesses" checked>
-                                <span class="checkmark"></span>
-                                <div class="artifact-info">
-                                    <span class="artifact-name">Running Processes</span>
-                                    <span class="artifact-desc">Process list with hashes</span>
-                                </div>
-                            </label>
-                            <label class="checkbox-label artifact-item">
-                                <input type="checkbox" id="collectNetwork" checked>
-                                <span class="checkmark"></span>
-                                <div class="artifact-info">
-                                    <span class="artifact-name">Network Connections</span>
-                                    <span class="artifact-desc">Active TCP/UDP connections</span>
-                                </div>
-                            </label>
-                            <label class="checkbox-label artifact-item">
-                                <input type="checkbox" id="collectPersistence" checked>
-                                <span class="checkmark"></span>
-                                <div class="artifact-info">
-                                    <span class="artifact-name">Persistence Mechanisms</span>
-                                    <span class="artifact-desc">Autostart locations</span>
-                                </div>
-                            </label>
-                            <label class="checkbox-label artifact-item">
-                                <input type="checkbox" id="collectEvents" checked>
-                                <span class="checkmark"></span>
-                                <div class="artifact-info">
-                                    <span class="artifact-name">Event Logs</span>
-                                    <span class="artifact-desc">Security and system events</span>
-                                </div>
-                            </label>
-                        </div>
-                    </div>
-                    
-                    <!-- Performance Options -->
-                    <div class="option-group">
-                        <h4>Performance Options</h4>
-                        <label class="checkbox-label">
-                            <input type="checkbox" id="skipHashes">
-                            <span class="checkmark"></span>
-                            <div class="option-info">
-                                <span class="option-name">Skip Process Hashes</span>
-                                <span class="option-desc">Faster scan, less detailed analysis</span>
-                            </div>
-                        </label>
-                        <div class="input-group">
-                            <label class="input-label">
-                                Max Event Log Entries:
-                                <input type="number" id="maxEvents" value="1000" min="0" max="50000" class="input-field">
-                                <span class="input-help">Higher values increase scan time</span>
-                            </label>
-                            <div id="maxEventsWarning" class="input-warning" style="display: none;"></div>
-                        </div>
-                    </div>
-
-                    <!-- Advanced Options -->
-                    <div class="advanced-section">
-                        <button type="button" id="toggleAdvancedOptions" class="btn btn-ghost btn-small">
-                            Show Advanced Options
+                    <div class="action-buttons">
+                        <button class="btn btn-primary" id="quickScanBtn">
+                            <span class="btn-icon">⚡</span>
+                            Quick Scan
                         </button>
-                        <div id="advancedOptions" style="display: none;">
-                            <div class="option-group">
-                                <h4>Output Options</h4>
-                                <div class="input-group">
-                                    <label class="input-label">
-                                        Output Directory:
-                                        <input type="text" id="outputPath" placeholder="Default: Desktop" class="input-field">
-                                        <button type="button" id="browseOutput" class="btn btn-outline btn-small">Browse</button>
-                                    </label>
-                                </div>
-                                <label class="checkbox-label">
-                                    <input type="checkbox" id="autoSave" checked>
-                                    <span class="checkmark"></span>
-                                    Auto-save results after scan
-                                </label>
-                            </div>
+                        <button class="btn btn-secondary" id="customScanBtn">
+                            <span class="btn-icon">⚙️</span>
+                            Custom Scan
+                        </button>
+                        <button class="btn btn-secondary" id="openFileBtn">
+                            <span class="btn-icon">📁</span>
+                            Open Results
+                        </button>
+                    </div>
+
+                    <div class="info-cards">
+                        <div class="info-card">
+                            <h3>🔍 System Analysis</h3>
+                            <p>Collect running processes, network connections, and system information</p>
                         </div>
-                    </div>
-
-                    <!-- Configuration Management -->
-                    <div class="config-management">
-                        <div class="config-buttons">
-                            <button id="saveConfig" class="btn btn-outline btn-small">Save Config</button>
-                            <button id="loadConfig" class="btn btn-outline btn-small">Load Config</button>
-                            <button id="resetConfig" class="btn btn-outline btn-small">Reset</button>
+                        <div class="info-card">
+                            <h3>🛡️ Security Events</h3>
+                            <p>Analyze Windows event logs and security-related artifacts</p>
                         </div>
-                    </div>
-
-                    <!-- Estimated Time -->
-                    <div class="scan-estimate">
-                        <div class="estimate-info">
-                            <span class="estimate-label">Estimated Time:</span>
-                            <span id="estimatedTime" class="estimate-value">2 - 5 minutes</span>
-                        </div>
-                    </div>
-
-                    <!-- Action Buttons -->
-                    <div class="option-buttons">
-                        <button id="startCustomScanBtn" class="btn btn-primary">Start Custom Scan</button>
-                        <button id="cancelCustomScanBtn" class="btn btn-outline">Cancel</button>
-                    </div>
-                </div>
-
-                <div class="file-operations">
-                    <h3>File Operations</h3>
-                    <button id="openFileBtn" class="btn btn-outline btn-small">
-                        <span class="btn-icon">📁</span>
-                        Open Results
-                    </button>
-                    <button id="saveResultsBtn" class="btn btn-outline btn-small" disabled>
-                        <span class="btn-icon">💾</span>
-                        Save Results
-                    </button>
-                    <button id="exportReportBtn" class="btn btn-outline btn-small" disabled>
-                        <span class="btn-icon">📄</span>
-                        Export Report
-                    </button>
-                </div>
-            </aside>
-
-            <!-- Content Area -->
-            <div class="content-area">
-                <!-- Progress Bar -->
-                <div class="progress-container" id="progressContainer" style="display: none;">
-                    <div class="progress-bar">
-                        <div class="progress-fill" id="progressFill"></div>
-                    </div>
-                    <div class="progress-text" id="progressText">Initializing scan...</div>
-                    <button id="stopScanBtn" class="btn btn-danger btn-small">Stop Scan</button>
-                </div>
-
-                <!-- Welcome Screen -->
-                <div class="welcome-screen" id="welcomeScreen">
-                    <div class="welcome-content">
-                        <h2>Welcome to TriageIR</h2>
-                        <p>A forensically sound digital forensics triage tool for Windows systems.</p>
-                        <div class="welcome-actions">
-                            <button id="welcomeStartScan" class="btn btn-primary btn-large">
-                                <span class="btn-icon">🔍</span>
-                                Start Your First Scan
-                            </button>
-                            <button id="welcomeOpenFile" class="btn btn-outline">
-                                <span class="btn-icon">📁</span>
-                                Open Existing Results
-                            </button>
-                        </div>
-                        <div class="welcome-info">
-                            <h3>What TriageIR Collects:</h3>
-                            <ul>
-                                <li><strong>System Information:</strong> Uptime, users, OS version</li>
-                                <li><strong>Running Processes:</strong> Process details with SHA-256 hashes</li>
-                                <li><strong>Network Connections:</strong> Active TCP/UDP connections</li>
-                                <li><strong>Persistence Mechanisms:</strong> Autostart locations and services</li>
-                                <li><strong>Event Logs:</strong> Security and System event entries</li>
-                            </ul>
+                        <div class="info-card">
+                            <h3>📊 Professional Reports</h3>
+                            <p>Generate comprehensive reports in multiple formats</p>
                         </div>
                     </div>
                 </div>
+            </div>
 
-                <!-- Results Tabs -->
-                <div class="results-container" id="resultsContainer" style="display: none;">
-                    <!-- Tab Navigation -->
-                    <nav class="tab-nav">
-                        <button class="tab-btn active" data-tab="overview">Overview</button>
-                        <button class="tab-btn" data-tab="system">System Info</button>
-                        <button class="tab-btn" data-tab="processes">Processes</button>
-                        <button class="tab-btn" data-tab="network">Network</button>
-                        <button class="tab-btn" data-tab="persistence">Persistence</button>
-                        <button class="tab-btn" data-tab="events">Event Logs</button>
-                        <button class="tab-btn" data-tab="logs">Collection Log</button>
-                    </nav>
+            <!-- Scan Progress Screen -->
+            <div class="scan-screen hidden" id="scanScreen">
+                <div class="scan-content">
+                    <h2>🔄 Scanning System...</h2>
+                    <div class="progress-container">
+                        <div class="progress-bar">
+                            <div class="progress-fill" id="progressFill"></div>
+                        </div>
+                        <div class="progress-text" id="progressText">Initializing scan...</div>
+                    </div>
+                    
+                    <div class="scan-log" id="scanLog">
+                        <div class="log-header">Scan Progress:</div>
+                        <div class="log-content" id="logContent"></div>
+                    </div>
+                    
+                    <button class="btn btn-danger" id="cancelScanBtn">Cancel Scan</button>
+                </div>
+            </div>
 
-                    <!-- Tab Content -->
-                    <div class="tab-content">
-                        <!-- Overview Tab -->
-                        <div class="tab-pane active" id="overviewTab">
-                            <div class="overview-grid">
-                                <div class="overview-card">
-                                    <h3>Scan Summary</h3>
-                                    <div class="summary-stats" id="summaryStats">
-                                        <!-- Populated by JavaScript -->
-                                    </div>
-                                </div>
-                                <div class="overview-card">
-                                    <h3>System Information</h3>
-                                    <div class="system-summary" id="systemSummary">
-                                        <!-- Populated by JavaScript -->
-                                    </div>
-                                </div>
-                                <div class="overview-card">
-                                    <h3>Key Findings</h3>
-                                    <div class="findings-summary" id="findingsSummary">
-                                        <!-- Populated by JavaScript -->
-                                    </div>
-                                </div>
-                                <div class="overview-card">
-                                    <h3>Collection Status</h3>
-                                    <div class="collection-summary" id="collectionSummary">
-                                        <!-- Populated by JavaScript -->
-                                    </div>
-                                </div>
-                            </div>
+            <!-- Results Screen -->
+            <div class="results-screen hidden" id="resultsScreen">
+                <div class="results-header">
+                    <h2>📋 Scan Results</h2>
+                    <div class="results-actions">
+                        <button class="btn btn-primary" id="newScanBtn">New Scan</button>
+                        <button class="btn btn-secondary" id="saveResultsBtn">Save Results</button>
+                        <button class="btn btn-secondary" id="exportReportBtn">Export Report</button>
+                    </div>
+                </div>
+
+                <div class="results-content">
+                    <!-- Summary Cards -->
+                    <div class="summary-cards" id="summaryCards">
+                        <!-- Populated by JavaScript -->
+                    </div>
+
+                    <!-- Data Tabs -->
+                    <div class="data-tabs">
+                        <div class="tab-buttons">
+                            <button class="tab-btn active" data-tab="overview">Overview</button>
+                            <button class="tab-btn" data-tab="system">System Info</button>
+                            <button class="tab-btn" data-tab="processes">Processes</button>
+                            <button class="tab-btn" data-tab="network">Network</button>
+                            <button class="tab-btn" data-tab="persistence">Persistence</button>
+                            <button class="tab-btn" data-tab="events">Events</button>
                         </div>
 
-                        <!-- System Info Tab -->
-                        <div class="tab-pane" id="systemTab">
-                            <div class="tab-header">
-                                <h2>System Information</h2>
-                                <div class="tab-actions">
-                                    <button class="btn btn-outline btn-small" id="exportSystemBtn">Export</button>
-                                </div>
+                        <div class="tab-content">
+                            <div class="tab-panel active" id="overviewPanel">
+                                <h3>System Overview</h3>
+                                <div id="overviewContent"><!-- Populated by JavaScript --></div>
                             </div>
-                            <div class="system-info-content" id="systemInfoContent">
-                                <!-- Populated by JavaScript -->
+                            
+                            <div class="tab-panel" id="systemPanel">
+                                <h3>System Information</h3>
+                                <div id="systemContent"><!-- Populated by JavaScript --></div>
                             </div>
-                        </div>
-
-                        <!-- Processes Tab -->
-                        <div class="tab-pane" id="processesTab">
-                            <div class="tab-header">
-                                <h2>Running Processes</h2>
-                                <div class="tab-actions">
-                                    <input type="text" id="processFilter" placeholder="Filter processes..." class="filter-input">
-                                    <button class="btn btn-outline btn-small" id="exportProcessesBtn">Export</button>
-                                </div>
-                            </div>
-                            <div class="processes-content">
+                            
+                            <div class="tab-panel" id="processesPanel">
+                                <h3>Running Processes</h3>
                                 <div class="table-container">
                                     <table class="data-table" id="processesTable">
                                         <thead>
                                             <tr>
                                                 <th>PID</th>
                                                 <th>Name</th>
-                                                <th>Parent PID</th>
+                                                <th>User</th>
+                                                <th>Memory (MB)</th>
                                                 <th>Command Line</th>
-                                                <th>Executable Path</th>
-                                                <th>SHA-256 Hash</th>
                                             </tr>
                                         </thead>
                                         <tbody id="processesTableBody">
@@ -348,32 +143,20 @@
                                     </table>
                                 </div>
                             </div>
-                        </div>
-
-                        <!-- Network Tab -->
-                        <div class="tab-pane" id="networkTab">
-                            <div class="tab-header">
-                                <h2>Network Connections</h2>
-                                <div class="tab-actions">
-                                    <select id="networkFilter" class="filter-select">
-                                        <option value="all">All Connections</option>
-                                        <option value="tcp">TCP Only</option>
-                                        <option value="udp">UDP Only</option>
-                                        <option value="external">External Only</option>
-                                    </select>
-                                    <button class="btn btn-outline btn-small" id="exportNetworkBtn">Export</button>
-                                </div>
-                            </div>
-                            <div class="network-content">
+                            
+                            <div class="tab-panel" id="networkPanel">
+                                <h3>Network Connections</h3>
                                 <div class="table-container">
                                     <table class="data-table" id="networkTable">
                                         <thead>
                                             <tr>
                                                 <th>Protocol</th>
                                                 <th>Local Address</th>
+                                                <th>Local Port</th>
                                                 <th>Remote Address</th>
+                                                <th>Remote Port</th>
                                                 <th>State</th>
-                                                <th>Process ID</th>
+                                                <th>Process</th>
                                             </tr>
                                         </thead>
                                         <tbody id="networkTableBody">
@@ -382,31 +165,18 @@
                                     </table>
                                 </div>
                             </div>
-                        </div>
-
-                        <!-- Persistence Tab -->
-                        <div class="tab-pane" id="persistenceTab">
-                            <div class="tab-header">
-                                <h2>Persistence Mechanisms</h2>
-                                <div class="tab-actions">
-                                    <select id="persistenceFilter" class="filter-select">
-                                        <option value="all">All Types</option>
-                                        <option value="registry">Registry Run Keys</option>
-                                        <option value="service">Windows Services</option>
-                                        <option value="startup">Startup Folders</option>
-                                    </select>
-                                    <button class="btn btn-outline btn-small" id="exportPersistenceBtn">Export</button>
-                                </div>
-                            </div>
-                            <div class="persistence-content">
+                            
+                            <div class="tab-panel" id="persistencePanel">
+                                <h3>Persistence Mechanisms</h3>
                                 <div class="table-container">
                                     <table class="data-table" id="persistenceTable">
                                         <thead>
                                             <tr>
                                                 <th>Type</th>
                                                 <th>Name</th>
-                                                <th>Command</th>
-                                                <th>Source</th>
+                                                <th>Location</th>
+                                                <th>Value</th>
+                                                <th>Suspicious</th>
                                             </tr>
                                         </thead>
                                         <tbody id="persistenceTableBody">
@@ -415,33 +185,19 @@
                                     </table>
                                 </div>
                             </div>
-                        </div>
-
-                        <!-- Event Logs Tab -->
-                        <div class="tab-pane" id="eventsTab">
-                            <div class="tab-header">
-                                <h2>Event Logs</h2>
-                                <div class="tab-actions">
-                                    <select id="eventLogFilter" class="filter-select">
-                                        <option value="all">All Events</option>
-                                        <option value="security">Security Log</option>
-                                        <option value="system">System Log</option>
-                                        <option value="error">Errors Only</option>
-                                        <option value="warning">Warnings Only</option>
-                                    </select>
-                                    <button class="btn btn-outline btn-small" id="exportEventsBtn">Export</button>
-                                </div>
-                            </div>
-                            <div class="events-content">
+                            
+                            <div class="tab-panel" id="eventsPanel">
+                                <h3>Event Logs</h3>
                                 <div class="table-container">
                                     <table class="data-table" id="eventsTable">
                                         <thead>
                                             <tr>
+                                                <th>Log</th>
                                                 <th>Event ID</th>
                                                 <th>Level</th>
+                                                <th>Source</th>
                                                 <th>Timestamp</th>
                                                 <th>Message</th>
-                                                <th>Source</th>
                                             </tr>
                                         </thead>
                                         <tbody id="eventsTableBody">
@@ -451,75 +207,21 @@
                                 </div>
                             </div>
                         </div>
-
-                        <!-- Collection Log Tab -->
-                        <div class="tab-pane" id="logsTab">
-                            <div class="tab-header">
-                                <h2>Collection Log</h2>
-                                <div class="tab-actions">
-                                    <select id="logLevelFilter" class="filter-select">
-                                        <option value="all">All Levels</option>
-                                        <option value="INFO">Info</option>
-                                        <option value="WARN">Warnings</option>
-                                        <option value="ERROR">Errors</option>
-                                    </select>
-                                    <button class="btn btn-outline btn-small" id="exportLogsBtn">Export</button>
-                                </div>
-                            </div>
-                            <div class="logs-content">
-                                <div class="log-container" id="logContainer">
-                                    <!-- Populated by JavaScript -->
-                                </div>
-                            </div>
-                        </div>
                     </div>
                 </div>
             </div>
         </main>
 
-        <!-- Status Bar -->
-        <footer class="status-bar">
-            <div class="status-left">
-                <span id="statusMessage">Ready</span>
-            </div>
-            <div class="status-right">
-                <span id="artifactCount">No data loaded</span>
-                <span class="separator">|</span>
-                <span id="appVersion">v1.0.0</span>
+        <!-- Footer -->
+        <footer class="app-footer">
+            <div class="footer-content">
+                <span>TriageIR v1.0.0 - Professional Digital Forensics Tool</span>
+                <span id="footerStatus">Ready</span>
             </div>
         </footer>
     </div>
 
-    <!-- Modals -->
-    <div id="aboutModal" class="modal" style="display: none;">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h2>About TriageIR</h2>
-                <button class="modal-close" id="aboutModalClose">&times;</button>
-            </div>
-            <div class="modal-body">
-                <div class="about-content">
-                    <img src="../assets/icon.png" alt="TriageIR" class="about-icon">
-                    <h3>TriageIR GUI</h3>
-                    <p>Version <span id="aboutVersion">1.0.0</span></p>
-                    <p>A forensically sound digital forensics triage tool for Windows systems.</p>
-                    <div class="about-links">
-                        <a href="#" id="aboutWebsite">Website</a>
-                        <a href="#" id="aboutGithub">GitHub</a>
-                        <a href="#" id="aboutDocs">Documentation</a>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-
     <!-- Scripts -->
-    <script src="js/utils.js"></script>
-    <script src="js/data-validator.js"></script>
-    <script src="js/cli-manager.js"></script>
-    <script src="js/scan-config.js"></script>
-    <script src="js/data-renderer.js"></script>
-    <script src="js/export-manager.js"></script>
     <script src="js/app.js"></script>
 </body>
 </html>

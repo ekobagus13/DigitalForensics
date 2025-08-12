@@ -1,79 +1,47 @@
 {
-  "name": "triageir-gui",
+  "name": "triageir-gui-new",
   "version": "1.0.0",
-  "description": "GUI frontend for TriageIR forensic triage tool",
+  "description": "TriageIR GUI - Clean and Functional Interface",
   "main": "src/main.js",
-  "author": "TriageIR Team",
-  "license": "MIT",
-  "homepage": "https://github.com/triageir/triageir-gui",
   "scripts": {
     "start": "electron .",
     "dev": "electron . --dev",
     "build": "electron-builder",
-    "make": "electron-builder --publish=never",
-    "dist": "electron-builder --publish=never",
-    "pack": "electron-builder --dir",
-    "test": "jest",
-    "lint": "eslint src/**/*.js",
-    "format": "prettier --write src/**/*.{js,html,css}"
+    "test": "node test.js"
   },
+  "keywords": [
+    "forensics",
+    "incident-response",
+    "digital-forensics",
+    "triage",
+    "security"
+  ],
+  "author": "TriageIR Team",
+  "license": "MIT",
   "devDependencies": {
     "electron": "^27.0.0",
-    "electron-builder": "^24.6.4",
-    "@types/node": "^20.0.0",
-    "typescript": "^5.0.0",
-    "jest": "^29.0.0",
-    "eslint": "^8.0.0",
-    "prettier": "^3.0.0"
-  },
-  "dependencies": {
-    "uuid": "^9.0.0",
-    "chart.js": "^4.0.0",
-    "date-fns": "^2.30.0"
+    "electron-builder": "^24.6.4"
   },
   "build": {
     "appId": "com.triageir.gui",
     "productName": "TriageIR GUI",
     "directories": {
-      "output": "dist",
-      "buildResources": "build"
+      "output": "dist"
     },
     "files": [
       "src/**/*",
       "node_modules/**/*",
-      "!node_modules/.cache/**/*"
+      "package.json"
     ],
+    "win": {
+      "target": "nsis",
+      "icon": "assets/icon.ico"
+    },
     "extraResources": [
       {
         "from": "../TriageIR-CLI/target/release/triageir-cli.exe",
-        "to": "triageir-cli.exe",
-        "filter": ["**/*"]
+        "to": "triageir-cli.exe"
       }
-    ],
-    "win": {
-      "target": [
-        {
-          "target": "nsis",
-          "arch": ["x64"]
-        }
-      ],
-      "icon": "build/icon.ico",
-      "requestedExecutionLevel": "requireAdministrator"
-    },
-    "nsis": {
-      "oneClick": false,
-      "allowToChangeInstallationDirectory": true,
-      "createDesktopShortcut": true,
-      "createStartMenuShortcut": true,
-      "shortcutName": "TriageIR GUI"
-    }
-  },
-  "keywords": [
-    "forensics",
-    "security",
-    "incident-response",
-    "windows",
-    "electron",
-    "gui"
-  ]
+    ]
+  }
 }
