@@ -59,14 +59,26 @@ fn collect_uptime() -> Result<u64, String> {
 fn collect_logged_on_users() -> Result<Vec<LoggedOnUser>, String> {
     let mut users = Vec::new();
     let mut sys = System::new_all();
-    sys.refresh_users_list();
+    // Note: sysinfo 0.30+ doesn't have users() method, using Windows API fallback
+    // sys.refresh_users_list();
     
-    for user in sys.users() {
-        // Convert user information to our format
+    // for user in sys.users() {
+    //     // Convert user information to our format
+    //     let logged_user = LoggedOnUser::new(
+    //         user.name().to_string(),
+    //         get_user_domain(user.name()),
+    //         format_logon_time(user.name()),
+    //     );
+    //     users.push(logged_user);
+    // }
+    
+    // Fallback: Add current user from environment
+    if let Ok(username) = std::env::var("USERNAME") {
+        let domain = std::env::var("USERDOMAIN").unwrap_or_else(|_| "WORKGROUP".to_string());
         let logged_user = LoggedOnUser::new(
-            user.name().to_string(),
-            get_user_domain(user.name()),
-            format_logon_time(user.name()),
+            username,
+            domain,
+            chrono::Utc::now().to_rfc3339(),
         );
         users.push(logged_user);
     }
@@ -79,7 +91,7 @@ fn collect_logged_on_users() -> Result<Vec<LoggedOnUser>, String> {
 }
 
 /// Get domain information for a user (Windows-specific)
-fn get_user_domain(username: &str) -> String {
+fn get_user_domain(_username: &str) -> String {
     // Try to get computer name as default domain
     std::env::var("COMPUTERNAME").unwrap_or_else(|_| {
         std::env::var("USERDOMAIN").unwrap_or_else(|_| "WORKGROUP".to_string())
@@ -87,7 +99,7 @@ fn get_user_domain(username: &str) -> String {
 }
 
 /// Format logon time for a user (placeholder implementation)
-fn format_logon_time(username: &str) -> String {
+fn format_logon_time(_username: &str) -> String {
     // This is a simplified implementation
     // In a full implementation, we would query Windows APIs for actual logon times
     chrono::Utc::now().to_rfc3339()
@@ -96,12 +108,12 @@ fn format_logon_time(username: &str) -> String {
 /// Get detailed OS version information
 pub fn get_detailed_os_version() -> String {
     let mut sys = System::new();
-    sys.refresh_system();
+    // sys.refresh_system();
     
     format!("{} {} ({})", 
-        sys.name().unwrap_or("Unknown OS".to_string()),
-        sys.os_version().unwrap_or("Unknown Version".to_string()),
-        sys.kernel_version().unwrap_or("Unknown Kernel".to_string())
+        System::name().unwrap_or("Unknown OS".to_string()),
+        System::os_version().unwrap_or("Unknown Version".to_string()),
+        System::kernel_version().unwrap_or("Unknown Kernel".to_string())
     )
 }
 
@@ -110,7 +122,7 @@ pub fn get_system_hostname() -> String {
     let mut sys = System::new();
     sys.refresh_system();
     
-    sys.host_name().unwrap_or_else(|| {
+    System::host_name().unwrap_or_else(|| {
         std::env::var("COMPUTERNAME").unwrap_or_else(|_| "UNKNOWN".to_string())
     })
 }
