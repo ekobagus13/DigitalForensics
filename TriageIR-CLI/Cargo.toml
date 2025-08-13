@@ -1,0 +1,65 @@
+[package]
+name = "triageir-cli"
+version = "0.1.0"
+edition = "2021"
+authors = ["TriageIR Team"]
+description = "Digital forensics triage tool for Windows systems"
+license = "MIT"
+repository = "https://github.com/triageir/triageir-cli"
+keywords = ["forensics", "security", "incident-response", "windows"]
+categories = ["command-line-utilities", "development-tools"]
+
+[profile.release]
+# Optimize for size and performance
+opt-level = 3
+lto = true
+codegen-units = 1
+panic = "abort"
+strip = true
+
+[dependencies]
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+clap = { version = "4.0", features = ["derive"] }
+winreg = "0.52"
+sysinfo = "0.30"
+uuid = { version = "1.0", features = ["v4"] }
+chrono = { version = "0.4", features = ["serde"] }
+sha2 = "0.10"
+hex = "0.4"
+tempfile = "3.0"
+# Professional DFIR dependencies
+zip = "0.6"
+aes = "0.8"
+pbkdf2 = "0.12"
+rand = "0.8"
+walkdir = "2.3"
+regex = "1.10"
+memmap2 = "0.9"
+rayon = "1.7"
+# Optional YARA engine for memory scanning
+yara = { version = "0.20", optional = true }
+
+windows = { version = "0.52", features = [
+    "Win32_System_ProcessStatus",
+    "Win32_System_Threading",
+    "Win32_NetworkManagement_IpHelper",
+    "Win32_System_Diagnostics_ToolHelp",
+    "Win32_Foundation",
+    "Win32_System_Registry",
+    "Win32_System_EventLog",
+    # Enhanced forensic capabilities
+    "Win32_Storage_FileSystem",
+    "Win32_System_Services",
+    "Win32_System_TaskScheduler",
+    "Win32_System_WindowsProgramming",
+    "Win32_System_LibraryLoader",
+    "Win32_System_Memory",
+    "Win32_Security",
+    "Win32_System_SystemInformation",
+] }
+
+[features]
+default = []
+professional = []
+yara-engine = ["yara"]
