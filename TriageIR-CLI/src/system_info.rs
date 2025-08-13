@@ -58,7 +58,7 @@ fn collect_uptime() -> Result<u64, String> {
 /// Collect information about currently logged-on users
 fn collect_logged_on_users() -> Result<Vec<LoggedOnUser>, String> {
     let mut users = Vec::new();
-    let mut sys = System::new_all();
+    let _sys = System::new_all();
     // Note: sysinfo 0.30+ doesn't have users() method, using Windows API fallback
     // sys.refresh_users_list();
     
@@ -107,7 +107,7 @@ fn format_logon_time(_username: &str) -> String {
 
 /// Get detailed OS version information
 pub fn get_detailed_os_version() -> String {
-    let mut sys = System::new();
+    let _sys = System::new();
     // sys.refresh_system();
     
     format!("{} {} ({})", 
@@ -119,8 +119,8 @@ pub fn get_detailed_os_version() -> String {
 
 /// Get system hostname
 pub fn get_system_hostname() -> String {
-    let mut sys = System::new();
-    sys.refresh_system();
+    // let mut sys = System::new();
+    // sys.refresh_system();
     
     System::host_name().unwrap_or_else(|| {
         std::env::var("COMPUTERNAME").unwrap_or_else(|_| "UNKNOWN".to_string())

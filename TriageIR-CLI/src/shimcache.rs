@@ -384,3 +384,170 @@ pub fn get_executed_programs<'a>(shimcache_entries: &'a [ShimcacheEntry]) -> Vec
         .filter(|entry| entry.execution_flag)
         .collect()
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::collections::HashMap;
+
+    #[test]
+    fn test_collect_shimcache_entries() {
+        // Test shimcache collection - should handle registry access gracefully
+        let (shimcache_entries, audit_log) = collect_shimcache_entries();
+        
+        // Should have audit log entries
+        assert!(!audit_log.is_empty());
+        
+        // Should have start and complete entries
+        let has_start = audit_log.iter().any(|log| log.action == "start_collection");
+        let has_complete = audit_log.iter().any(|log| log.action == "complete_collection");
+        assert!(has_start);
+        assert!(has_complete);
+    }
+
+    #[test]
+    fn test_shimcache_statistics() {
+        let mut shimcache_entries = Vec::new();
+        
+        // Create test shimcache entries
+        shimcache_entries.push(ShimcacheEntry {
+            path: "C:\\Windows\\System32\\notepad.exe".to_string(),
+            last_modified: "2023-01-01T00:00:00Z".to_string(),
+            file_size: 1024,
+            last_update: "2023-01-01T00:00:00Z".to_string(),
+            execution_flag: true,
+        });
+        
+        shimcache_entries.push(ShimcacheEntry {
+            path: "C:\\Windows\\System32\\calc.exe".to_string(),
+            last_modified: "2023-01-02T00:00:00Z".to_string(),
+            file_size: 2048,
+            last_update: "2023-01-02T00:00:00Z".to_string(),
+            execution_flag: false,
+        });
+        
+        shimcache_entries.push(ShimcacheEntry {
+            path: "C:\\Windows\\System32\\kernel32.dll".to_string(),
+            last_modified: "2023-01-03T00:00:00Z".to_string(),
+            file_size: 4096,
+            last_update: "2023-01-03T00:00:00Z".to_string(),
+            execution_flag: false,
+        });
+        
+        let stats = get_shimcache_statistics(&shimcache_entries);
+        
+        assert_eq!(stats.get("total_entries"), Some(&3));
+        assert_eq!(stats.get("executed_programs"), Some(&1));
+        assert_eq!(stats.get("not_executed_programs"), Some(&2));
+        assert_eq!(stats.get("exe_files"), Some(&2));
+        assert_eq!(stats.get("dll_files"), Some(&1));
+    }
+
+    #[test]
+    fn test_find_shimcache_by_path() {
+        let mut shimcache_entries = Vec::new();
+        
+        shimcache_entries.push(ShimcacheEntry {
+            path: "C:\\Windows\\System32\\notepad.exe".to_string(),
+            last_modified: "2023-01-01T00:00:00Z".to_string(),
+            file_size: 1024,
+            last_update: "2023-01-01T00:00:00Z".to_string(),
+            execution_flag: true,
+        });
+        
+        shimcache_entries.push(ShimcacheEntry {
+            path: "C:\\Program Files\\MyApp\\app.exe".to_string(),
+            last_modified: "2023-01-02T00:00:00Z".to_string(),
+            file_size: 2048,
+            last_update: "2023-01-02T00:00:00Z".to_string(),
+            execution_flag: false,
+        });
+        
+        let results = find_shimcache_by_path(&shimcache_entries, "notepad");
+        assert_eq!(results.len(), 1);
+        assert!(results[0].path.contains("notepad.exe"));
+        
+        let results = find_shimcache_by_path(&shimcache_entries, "nonexistent");
+        assert_eq!(results.len(), 0);
+    }
+
+    #[test]
+    fn test_get_executed_programs() {
+        let mut shimcache_entries = Vec::new();
+        
+        shimcache_entries.push(ShimcacheEntry {
+            path: "C:\\Windows\\System32\\notepad.exe".to_string(),
+            last_modified: "2023-01-01T00:00:00Z".to_string(),
+            file_size: 1024,
+            last_update: "2023-01-01T00:00:00Z".to_string(),
+            execution_flag: true,
+        });
+        
+        shimcache_entries.push(ShimcacheEntry {
+            path: "C:\\Windows\\System32\\calc.exe".to_string(),
+            last_modified: "2023-01-02T00:00:00Z".to_string(),
+            file_size: 2048,
+            last_update: "2023-01-02T00:00:00Z".to_string(),
+            execution_flag: false,
+        });
+        
+        let executed = get_executed_programs(&shimcache_entries);
+        assert_eq!(executed.len(), 1);
+        assert_eq!(executed[0].path, "C:\\Windows\\System32\\notepad.exe");
+    }
+
+    #[test]
+    fn test_parse_utf16_string() {
+        // Test with simple ASCII string in UTF-16 format
+        let utf16_data = vec![
+            b'H', 0, b'e', 0, b'l', 0, b'l', 0, b'o', 0, 0, 0 // "Hello" + null terminator
+        ];
+        
+        let result = parse_utf16_string(&utf16_data);
+        assert_eq!(result, "Hello");
+        
+        // Test with empty data
+        let empty_data = vec![0, 0];
+        let result = parse_utf16_string(&empty_data);
+        assert_eq!(result, "");
+    }
+
+    #[test]
+    fn test_filetime_to_string() {
+        // Test with zero filetime
+        let result = filetime_to_string(0);
+        assert_eq!(result, "Not set");
+        
+        // Test with a known filetime value (approximate)
+        // This is a rough test since exact conversion depends on system
+        let filetime = 132000000000000000u64; // Approximate value
+        let result = filetime_to_string(filetime);
+        assert!(result.contains("T")); // Should be ISO format
+        assert!(result.len() > 10); // Should be a reasonable timestamp
+    }
+
+    #[test]
+    fn test_get_recently_modified_entries() {
+        let mut shimcache_entries = Vec::new();
+        
+        shimcache_entries.push(ShimcacheEntry {
+            path: "C:\\old.exe".to_string(),
+            last_modified: "2023-01-01T00:00:00Z".to_string(),
+            file_size: 1024,
+            last_update: "2023-01-01T00:00:00Z".to_string(),
+            execution_flag: false,
+        });
+        
+        shimcache_entries.push(ShimcacheEntry {
+            path: "C:\\new.exe".to_string(),
+            last_modified: "2023-12-31T23:59:59Z".to_string(),
+            file_size: 2048,
+            last_update: "2023-12-31T23:59:59Z".to_string(),
+            execution_flag: false,
+        });
+        
+        let recent = get_recently_modified_entries(&shimcache_entries, 1);
+        assert_eq!(recent.len(), 1);
+        assert_eq!(recent[0].path, "C:\\new.exe");
+    }
+}
