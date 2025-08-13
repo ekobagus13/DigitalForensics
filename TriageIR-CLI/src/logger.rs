@@ -465,12 +465,14 @@ mod tests {
     #[test]
     fn test_retry_operation() {
         let logger = Logger::new(false);
-        let mut attempt_count = 0;
+        let attempt_count = std::sync::Arc::new(std::sync::Mutex::new(0));
         
+        let attempt_count_clone = attempt_count.clone();
         let result = retry_operation(
-            || {
-                attempt_count += 1;
-                if attempt_count < 3 {
+            move || {
+                let mut count = attempt_count_clone.lock().unwrap();
+                *count += 1;
+                if *count < 3 {
                     Err(ForensicError::new(ErrorKind::NetworkError, "Temporary failure"))
                 } else {
                     Ok("Success")
@@ -482,7 +484,7 @@ mod tests {
         
         assert!(result.is_ok());
         assert_eq!(result.unwrap(), "Success");
-        assert_eq!(attempt_count, 3);
+        assert_eq!(*attempt_count.lock().unwrap(), 3);
     }
 
     #[test]
@@ -502,5 +504,146 @@ mod tests {
         // Should have logged the error
         let entries = logger.get_entries();
         assert!(entries.iter().any(|e| e.level == "WARN" && e.message.contains("test_operation")));
+    }
+
+    #[test]
+    fn test_logger_memory_limits() {
+        let logger = Logger::new(false);
+        
+        // Test that logger respects memory limits
+        for i in 0..15000 {
+            logger.info(&format!("Test message {}", i));
+        }
+        
+        let entries = logger.get_entries();
+        assert!(entries.len() <= 10000, "Logger should limit entries to prevent memory issues");
+    }
+
+    #[test]
+    fn test_logger_thread_safety() {
+        use std::sync::Arc;
+        use std::thread;
+        
+        let logger = Arc::new(Logger::new(false));
+        let mut handles = vec![];
+        
+        // Spawn multiple threads to test thread safety
+        for i in 0..10 {
+            let logger_clone = Arc::clone(&logger);
+            let handle = thread::spawn(move || {
+                for j in 0..100 {
+                    logger_clone.info(&format!("Thread {} message {}", i, j));
+                }
+            });
+            handles.push(handle);
+        }
+        
+        // Wait for all threads to complete
+        for handle in handles {
+            handle.join().unwrap();
+        }
+        
+        let entries = logger.get_entries();
+        assert_eq!(entries.len(), 1000, "All messages should be logged safely");
+    }
+
+    #[test]
+    fn test_error_recovery_scenarios() {
+        let logger = Logger::new(false);
+        
+        // Test access denied scenario
+        let access_error = ForensicError::access_denied("Registry key access denied");
+        let handled = handle_error_gracefully(Err(access_error), &logger, "registry_scan");
+        assert_eq!(handled, None);
+        
+        // Test system API error scenario
+        let api_error = ForensicError::system_api_error("GetProcessList failed");
+        let handled = handle_error_gracefully(Err(api_error), &logger, "process_enum");
+        assert_eq!(handled, None);
+        
+        // Verify appropriate log levels were used
+        let entries = logger.get_entries();
+        let error_entries: Vec<_> = entries.iter().filter(|e| e.level == "ERROR").collect();
+        let warn_entries: Vec<_> = entries.iter().filter(|e| e.level == "WARN").collect();
+        
+        assert_eq!(error_entries.len(), 1, "Fatal errors should be logged as ERROR");
+        assert_eq!(warn_entries.len(), 1, "Non-fatal errors should be logged as WARN");
+    }
+
+    #[test]
+    fn test_verbose_mode_output() {
+        use std::io::{self, Write};
+        
+        // Test that verbose mode produces stderr output
+        let logger = Logger::new(true);
+        
+        // Capture stderr would require more complex setup, so we just verify
+        // that verbose mode is properly set and affects logging behavior
+        logger.info("Test verbose message");
+        
+        let entries = logger.get_entries();
+        assert_eq!(entries.len(), 1);
+        assert_eq!(entries[0].message, "Test verbose message");
+    }
+
+    #[test]
+    fn test_log_formatting() {
+        let logger = Logger::new(false);
+        
+        // Test formatted logging
+        logger.log_fmt(LogLevel::Info, "Found {0} processes with {1} connections", &[&42, &"TCP"]);
+        
+        let entries = logger.get_entries();
+        assert_eq!(entries.len(), 1);
+        assert_eq!(entries[0].message, "Found 42 processes with TCP connections");
+    }
+
+    #[test]
+    fn test_error_context_handling() {
+        let error_with_context = ForensicError::with_context(
+            ErrorKind::SystemApiError,
+            "Failed to enumerate processes",
+            "CreateToolhelp32Snapshot"
+        );
+        
+        let error_string = error_with_context.to_string();
+        assert!(error_string.contains("CreateToolhelp32Snapshot"));
+        assert!(error_string.contains("Failed to enumerate processes"));
+    }
+
+    #[test]
+    fn test_graceful_degradation() {
+        let logger = Logger::new(false);
+        
+        // Simulate a scenario where multiple operations fail but collection continues
+        let operations = vec![
+            ("process_enum", Ok(100)),
+            ("network_scan", Err(ForensicError::access_denied("Access denied"))),
+            ("registry_scan", Ok(50)),
+            ("event_logs", Err(ForensicError::system_api_error("API failed"))),
+        ];
+        
+        let mut successful_operations = 0;
+        let mut total_results = 0;
+        
+        for (op_name, result) in operations {
+            match handle_error_gracefully(result, &logger, op_name) {
+                Some(value) => {
+                    successful_operations += 1;
+                    total_results += value;
+                }
+                None => {
+                    // Operation failed but we continue
+                }
+            }
+        }
+        
+        assert_eq!(successful_operations, 2);
+        assert_eq!(total_results, 150);
+        
+        let summary = logger.get_summary();
+        assert_eq!(summary.error_count, 1); // One fatal error
+        assert_eq!(summary.warn_count, 1);  // One non-fatal error
+        assert!(summary.success_rate() > 0.0); // Some operations succeeded
     }
 }
