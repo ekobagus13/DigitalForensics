@@ -1,5 +1,5 @@
 use crate::types::{SystemInfo, LoggedOnUser, LogEntry};
-use sysinfo::{System, SystemExt, UserExt};
+use sysinfo::System;
 use std::time::{SystemTime, UNIX_EPOCH};
 
 /// Collect comprehensive system information
@@ -42,7 +42,7 @@ fn collect_uptime() -> Result<u64, String> {
     sys.refresh_all();
     
     // Get boot time and calculate uptime
-    let boot_time = sys.boot_time();
+    let boot_time = System::boot_time();
     let current_time = SystemTime::now()
         .duration_since(UNIX_EPOCH)
         .map_err(|e| format!("Failed to get current time: {}", e))?

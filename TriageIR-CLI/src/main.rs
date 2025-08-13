@@ -2,7 +2,6 @@ use clap::{Arg, Command};
 use serde_json::json;
 use std::fs;
 use sysinfo::System;
-use std::collections::HashMap;
 
 mod types;
 mod processes;
@@ -11,6 +10,9 @@ mod network;
 mod persistence;
 mod event_logs;
 mod logger;
+mod prefetch;
+mod shimcache;
+mod forensic_types;
 
 fn main() {
     let matches = Command::new("triageir-cli")
@@ -129,14 +131,51 @@ fn main() {
         }).collect::<Vec<_>>()
     });
     
-    let total_artifacts = processes.len() + network_connections.len() + persistence_mechanisms.len() + total_event_entries;
+    // Collect execution evidence using prefetch and shimcache modules
+    let (prefetch_files_data, prefetch_logs) = prefetch::collect_prefetch_files();
+    let prefetch_files = prefetch_files_data.into_iter().map(|pf| {
+        json!({
+            "filename": pf.filename,
+            "executable_name": pf.executable_name,
+            "run_count": pf.run_count,
+            "last_run_time": pf.last_run_time,
+            "creation_time": pf.creation_time,
+            "file_size": pf.file_size,
+            "hash": pf.hash,
+            "version": pf.version,
+            "referenced_files": pf.referenced_files,
+            "volumes": pf.volumes.into_iter().map(|v| {
+                json!({
+                    "device_path": v.device_path,
+                    "volume_name": v.volume_name,
+                    "serial_number": v.serial_number,
+                    "creation_time": v.creation_time
+                })
+            }).collect::<Vec<_>>()
+        })
+    }).collect::<Vec<_>>();
+    
+    let (shimcache_entries_data, shimcache_logs) = shimcache::collect_shimcache_entries();
+    let shimcache_entries = shimcache_entries_data.into_iter().map(|sc| {
+        json!({
+            "path": sc.path,
+            "last_modified": sc.last_modified,
+            "file_size": sc.file_size,
+            "last_update": sc.last_update,
+            "execution_flag": sc.execution_flag
+        })
+    }).collect::<Vec<_>>();
+    
+    let total_artifacts = processes.len() + network_connections.len() + persistence_mechanisms.len() + total_event_entries + prefetch_files.len() + shimcache_entries.len();
     
     if matches.get_flag("verbose") {
         println!("✓ System information collected");
         println!("✓ Running processes enumerated ({} processes)", processes.len());
         println!("✓ Network connections analyzed ({} connections)", network_connections.len());
         println!("✓ Persistence mechanisms detected ({} mechanisms)", persistence_mechanisms.len());
-        println!("✓ Event logs collected ({} entries)", event_logs_data.total_entries());
+        println!("✓ Event logs collected ({} entries)", total_event_entries);
+        println!("✓ Prefetch files analyzed ({} files)", prefetch_files.len());
+        println!("✓ Shimcache entries collected ({} entries)", shimcache_entries.len());
     }
 
     let duration = start_time.elapsed();
@@ -155,9 +194,13 @@ fn main() {
             "running_processes": processes,
             "network_connections": network_connections,
             "persistence_mechanisms": persistence_mechanisms,
-            "event_logs": event_logs
+            "event_logs": event_logs,
+            "execution_evidence": {
+                "prefetch_files": prefetch_files,
+                "shimcache_entries": shimcache_entries
+            }
         },
-        "collection_log": create_collection_log(process_logs, network_logs, persistence_logs, event_logs_collection_logs)
+        "collection_log": create_collection_log(process_logs, network_logs, persistence_logs, event_logs_collection_logs, prefetch_logs, shimcache_logs)
     });
 
     if matches.get_flag("verbose") {
@@ -217,7 +260,7 @@ fn collect_system_info(sys: &System, hostname: &str, username: &str) -> serde_js
 
 
 
-fn create_collection_log(process_logs: Vec<types::LogEntry>, network_logs: Vec<types::LogEntry>, persistence_logs: Vec<types::LogEntry>, event_logs_logs: Vec<types::LogEntry>) -> Vec<serde_json::Value> {
+fn create_collection_log(process_logs: Vec<types::LogEntry>, network_logs: Vec<types::LogEntry>, persistence_logs: Vec<types::LogEntry>, event_logs_logs: Vec<types::LogEntry>, prefetch_logs: Vec<forensic_types::AuditEntry>, shimcache_logs: Vec<forensic_types::AuditEntry>) -> Vec<serde_json::Value> {
     let mut all_logs = Vec::new();
     
     // Add process collection logs
@@ -253,6 +296,32 @@ fn create_collection_log(process_logs: Vec<types::LogEntry>, network_logs: Vec<t
             "timestamp": log.timestamp,
             "level": log.level,
             "message": log.message
+        }));
+    }
+    
+    // Add prefetch collection logs
+    for log in prefetch_logs {
+        all_logs.push(json!({
+            "timestamp": log.timestamp,
+            "level": log.level,
+            "component": log.component,
+            "action": log.action,
+            "details": log.details,
+            "duration_ms": log.duration_ms,
+            "result": log.result
+        }));
+    }
+    
+    // Add shimcache collection logs
+    for log in shimcache_logs {
+        all_logs.push(json!({
+            "timestamp": log.timestamp,
+            "level": log.level,
+            "component": log.component,
+            "action": log.action,
+            "details": log.details,
+            "duration_ms": log.duration_ms,
+            "result": log.result
         }));
     }
     

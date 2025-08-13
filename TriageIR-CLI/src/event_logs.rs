@@ -4,7 +4,6 @@ use crate::types::{EventLogs, EventLogEntry, LogEntry};
 use windows::{
     core::PCWSTR,
     Win32::System::EventLog::*,
-    Win32::Foundation::*,
 };
 
 use std::collections::HashMap;
@@ -364,8 +363,8 @@ mod tests {
         assert!(logs.iter().any(|log| log.message.contains("Starting event log collection")));
         assert!(logs.iter().any(|log| log.message.contains("completed")));
         
-        // Event logs structure should be initialized
-        assert!(event_logs.total_entries() >= 0);
+        // Event logs structure should be initialized (total_entries is always >= 0 for usize)
+        let _total = event_logs.total_entries(); // Just verify it doesn't panic
     }
 
     #[test]

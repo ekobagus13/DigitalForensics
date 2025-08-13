@@ -292,14 +292,14 @@ pub fn get_prefetch_statistics(prefetch_files: &[PrefetchFile]) -> std::collecti
 }
 
 /// Find prefetch files for a specific executable
-pub fn find_prefetch_by_executable(prefetch_files: &[PrefetchFile], executable: &str) -> Vec<&PrefetchFile> {
+pub fn find_prefetch_by_executable<'a>(prefetch_files: &'a [PrefetchFile], executable: &str) -> Vec<&'a PrefetchFile> {
     prefetch_files.iter()
         .filter(|pf| pf.executable_name.to_lowercase().contains(&executable.to_lowercase()))
         .collect()
 }
 
 /// Get most frequently executed programs
-pub fn get_most_executed_programs(prefetch_files: &[PrefetchFile], limit: usize) -> Vec<(&PrefetchFile, u32)> {
+pub fn get_most_executed_programs<'a>(prefetch_files: &'a [PrefetchFile], limit: usize) -> Vec<(&'a PrefetchFile, u32)> {
     let mut programs: Vec<_> = prefetch_files.iter()
         .map(|pf| (pf, pf.run_count))
         .collect();
@@ -310,7 +310,7 @@ pub fn get_most_executed_programs(prefetch_files: &[PrefetchFile], limit: usize)
 }
 
 /// Get recently executed programs
-pub fn get_recently_executed_programs(prefetch_files: &[PrefetchFile], limit: usize) -> Vec<&PrefetchFile> {
+pub fn get_recently_executed_programs<'a>(prefetch_files: &'a [PrefetchFile], limit: usize) -> Vec<&'a PrefetchFile> {
     let mut programs: Vec<_> = prefetch_files.iter().collect();
     
     programs.sort_by(|a, b| b.last_run_time.cmp(&a.last_run_time));
