@@ -2,14 +2,12 @@ use crate::types::{EventLogs, EventLogEntry, LogEntry};
 
 #[cfg(windows)]
 use windows::{
-    core::*,
+    core::PCWSTR,
     Win32::System::EventLog::*,
     Win32::Foundation::*,
-    Win32::System::SystemServices::*,
 };
 
 use std::collections::HashMap;
-use std::io::Error;
 
 /// Collect Windows Event Log entries from Security and System logs
 pub fn collect_event_logs() -> (EventLogs, Vec<LogEntry>) {
@@ -51,19 +49,25 @@ pub fn collect_event_logs() -> (EventLogs, Vec<LogEntry>) {
 
 /// Collect Security event log entries
 #[cfg(windows)]
-fn collect_security_events() -> Result<Vec<EventLogEntry>, String> {
+fn collect_security_events() -> std::result::Result<Vec<EventLogEntry>, String> {
     collect_events_from_log("Security", get_security_event_filter())
 }
 
 /// Collect System event log entries
 #[cfg(windows)]
-fn collect_system_events() -> Result<Vec<EventLogEntry>, String> {
+fn collect_system_events() -> std::result::Result<Vec<EventLogEntry>, String> {
     collect_events_from_log("System", get_system_event_filter())
+}
+
+/// Collect Application event log entries
+#[cfg(windows)]
+fn collect_application_events() -> std::result::Result<Vec<EventLogEntry>, String> {
+    collect_events_from_log("Application", get_application_event_filter())
 }
 
 /// Collect events from a specific Windows Event Log
 #[cfg(windows)]
-fn collect_events_from_log(log_name: &str, event_filter: HashMap<u32, &str>) -> Result<Vec<EventLogEntry>, String> {
+fn collect_events_from_log(log_name: &str, event_filter: HashMap<u32, &str>) -> std::result::Result<Vec<EventLogEntry>, String> {
     let mut events = Vec::new();
     
     unsafe {
@@ -71,11 +75,11 @@ fn collect_events_from_log(log_name: &str, event_filter: HashMap<u32, &str>) -> 
         let log_name_wide: Vec<u16> = log_name.encode_utf16().chain(std::iter::once(0)).collect();
         let h_event_log = match OpenEventLogW(None, PCWSTR(log_name_wide.as_ptr())) {
             Ok(handle) => handle,
-            Err(_) => return Err(Error::new(std::io::ErrorKind::Other, format!("Failed to open {} event log", log_name)))
+            Err(_) => return Err(format!("Failed to open {} event log", log_name)),
         };
         
         if h_event_log.is_invalid() {
-            return Err(Error::new(std::io::ErrorKind::Other, format!("Failed to open {} event log", log_name)));
+            return Err(format!("Failed to open {} event log", log_name));
         }
         
         // Get the number of records
@@ -85,7 +89,7 @@ fn collect_events_from_log(log_name: &str, event_filter: HashMap<u32, &str>) -> 
         if GetNumberOfEventLogRecords(h_event_log, &mut num_records).is_err() ||
            GetOldestEventLogRecord(h_event_log, &mut oldest_record).is_err() {
             let _ = CloseEventLog(h_event_log);
-            return Err(Error::new(std::io::ErrorKind::Other, "Failed to get event log information"));
+            return Err("Failed to get event log information".to_string());
         }
         
         // Limit the number of events to collect (most recent 1000)
@@ -106,7 +110,7 @@ fn collect_events_from_log(log_name: &str, event_filter: HashMap<u32, &str>) -> 
                 h_event_log,
                 READ_EVENT_LOG_READ_FLAGS(0x0002 | 0x0004), // EVENTLOG_SEEK_READ | EVENTLOG_FORWARDS_READ
                 record_num,
-                Some(buffer.as_mut_ptr() as *mut _),
+                buffer.as_mut_ptr() as *mut _,
                 buffer.len() as u32,
                 &mut bytes_read,
                 &mut bytes_needed,
@@ -129,9 +133,9 @@ fn collect_events_from_log(log_name: &str, event_filter: HashMap<u32, &str>) -> 
 
 /// Parse an event log record
 #[cfg(windows)]
-fn parse_event_record(buffer: &[u8], event_filter: &HashMap<u32, &str>) -> Result<EventLogEntry, Error> {
+fn parse_event_record(buffer: &[u8], event_filter: &HashMap<u32, &str>) -> std::result::Result<EventLogEntry, std::io::Error> {
     if buffer.len() < std::mem::size_of::<EVENTLOGRECORD>() {
-        return Err(Error::new(std::io::ErrorKind::InvalidData, "Buffer too small for event record"));
+        return Err(std::io::Error::new(std::io::ErrorKind::InvalidData, "Buffer too small for event record"));
     }
     
     unsafe {
@@ -139,7 +143,7 @@ fn parse_event_record(buffer: &[u8], event_filter: &HashMap<u32, &str>) -> Resul
         
         // Only collect events we're interested in
         if !event_filter.contains_key(&record.EventID) {
-            return Err(Error::new(std::io::ErrorKind::NotFound, "Event not in filter"));
+            return Err(std::io::Error::new(std::io::ErrorKind::NotFound, "Event not in filter"));
         }
         
         // Convert timestamp
@@ -267,12 +271,12 @@ pub fn filter_events_by_id(events: &[EventLogEntry], event_id: u32) -> Vec<&Even
 }
 
 /// Filter events by level
-pub fn filter_events_by_level(events: &[EventLogEntry], level: &str) -> Vec<&EventLogEntry> {
+pub fn filter_events_by_level<'a>(events: &'a [EventLogEntry], level: &str) -> Vec<&'a EventLogEntry> {
     events.iter().filter(|e| e.level == level).collect()
 }
 
 /// Get events within a time range
-pub fn filter_events_by_time_range(events: &[EventLogEntry], start_time: &str, end_time: &str) -> Vec<&EventLogEntry> {
+pub fn filter_events_by_time_range<'a>(events: &'a [EventLogEntry], start_time: &str, end_time: &str) -> Vec<&'a EventLogEntry> {
     events.iter().filter(|e| {
         e.timestamp >= start_time.to_string() && e.timestamp <= end_time.to_string()
     }).collect()
