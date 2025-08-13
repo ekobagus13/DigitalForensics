@@ -1,10 +1,9 @@
 use crate::types::{PersistenceMechanism, PersistenceType, LogEntry};
 use winreg::enums::*;
-use winreg::RegKey;
+use winreg::{RegKey, HKEY};
 use std::path::Path;
 use std::fs;
 use std::process::Command;
-use regex::Regex;
 
 /// Collect all persistence mechanisms found on the system
 pub fn collect_persistence_mechanisms() -> (Vec<PersistenceMechanism>, Vec<LogEntry>) {
@@ -274,7 +273,7 @@ fn hive_to_string(hive: HKEY) -> &'static str {
 }
 
 /// Filter mechanisms by type
-pub fn filter_mechanisms_by_type(mechanisms: &[PersistenceMechanism], mechanism_type: &str) -> Vec<&PersistenceMechanism> {
+pub fn filter_mechanisms_by_type<'a>(mechanisms: &'a [PersistenceMechanism], mechanism_type: &str) -> Vec<&'a PersistenceMechanism> {
     mechanisms.iter().filter(|m| m.mechanism_type == mechanism_type).collect()
 }
 
@@ -299,7 +298,7 @@ fn collect_scheduled_tasks() -> Result<Vec<PersistenceMechanism>, String> {
                 if lines.len() > 1 {
                     // Parse CSV header to understand column positions
                     let header = lines[0];
-                    let columns: Vec<&str> = parse_csv_line(header);
+                    let columns = parse_csv_line(header);
                     
                     // Find column indices
                     let task_name_idx = find_column_index(&columns, "TaskName");
@@ -369,7 +368,7 @@ fn is_suspicious_task_command(command: &str) -> bool {
 }
 
 /// Parse CSV line (simple implementation)
-fn parse_csv_line(line: &str) -> Vec<&str> {
+fn parse_csv_line(line: &str) -> Vec<String> {
     // Simple CSV parsing - handles quoted fields
     let mut fields = Vec::new();
     let mut current_field = String::new();
@@ -382,7 +381,7 @@ fn parse_csv_line(line: &str) -> Vec<&str> {
                 in_quotes = !in_quotes;
             }
             ',' if !in_quotes => {
-                fields.push(current_field.trim());
+                fields.push(current_field.trim().to_string());
                 current_field = String::new();
             }
             _ => {
@@ -392,20 +391,18 @@ fn parse_csv_line(line: &str) -> Vec<&str> {
     }
     
     // Add the last field
-    fields.push(current_field.trim());
-    
-    // Convert to Vec<&str> by leaking the strings (for simplicity in this context)
-    fields.into_iter().map(|s| Box::leak(s.into_boxed_str()) as &str).collect()
+    fields.push(current_field.trim().to_string());
+    fields
 }
 
 /// Find column index by name
-fn find_column_index(columns: &[&str], column_name: &str) -> Option<usize> {
-    columns.iter().position(|&col| col.eq_ignore_ascii_case(column_name))
+fn find_column_index(columns: &[String], column_name: &str) -> Option<usize> {
+    columns.iter().position(|col| col.eq_ignore_ascii_case(column_name))
 }
 
 /// Get field by index
-fn get_field(fields: &[&str], index: Option<usize>) -> Option<&str> {
-    index.and_then(|i| fields.get(i)).copied()
+fn get_field<'a>(fields: &'a [String], index: Option<usize>) -> Option<&'a str> {
+    index.and_then(|i| fields.get(i).map(|s| s.as_str()))
 }
 
 /// Extract task name from path
@@ -574,7 +571,7 @@ mod tests {
 
     #[test]
     fn test_find_column_index() {
-        let columns = vec!["TaskName", "Status", "Run As User"];
+        let columns = vec!["TaskName".to_string(), "Status".to_string(), "Run As User".to_string()];
         assert_eq!(find_column_index(&columns, "TaskName"), Some(0));
         assert_eq!(find_column_index(&columns, "Status"), Some(1));
         assert_eq!(find_column_index(&columns, "Run As User"), Some(2));
