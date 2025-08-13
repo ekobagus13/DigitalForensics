@@ -363,14 +363,14 @@ pub fn get_shimcache_statistics(shimcache_entries: &[ShimcacheEntry]) -> HashMap
 }
 
 /// Find shimcache entries for a specific executable
-pub fn find_shimcache_by_path(shimcache_entries: &[ShimcacheEntry], search_path: &str) -> Vec<&ShimcacheEntry> {
+pub fn find_shimcache_by_path<'a>(shimcache_entries: &'a [ShimcacheEntry], search_path: &str) -> Vec<&'a ShimcacheEntry> {
     shimcache_entries.iter()
         .filter(|entry| entry.path.to_lowercase().contains(&search_path.to_lowercase()))
         .collect()
 }
 
 /// Get recently modified shimcache entries
-pub fn get_recently_modified_entries(shimcache_entries: &[ShimcacheEntry], limit: usize) -> Vec<&ShimcacheEntry> {
+pub fn get_recently_modified_entries<'a>(shimcache_entries: &'a [ShimcacheEntry], limit: usize) -> Vec<&'a ShimcacheEntry> {
     let mut entries: Vec<_> = shimcache_entries.iter().collect();
     
     entries.sort_by(|a, b| b.last_modified.cmp(&a.last_modified));
@@ -379,7 +379,7 @@ pub fn get_recently_modified_entries(shimcache_entries: &[ShimcacheEntry], limit
 }
 
 /// Get executed programs from shimcache
-pub fn get_executed_programs(shimcache_entries: &[ShimcacheEntry]) -> Vec<&ShimcacheEntry> {
+pub fn get_executed_programs<'a>(shimcache_entries: &'a [ShimcacheEntry]) -> Vec<&'a ShimcacheEntry> {
     shimcache_entries.iter()
         .filter(|entry| entry.execution_flag)
         .collect()
