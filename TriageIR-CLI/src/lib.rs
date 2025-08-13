@@ -2,3 +2,4 @@
 pub mod types;
 pub mod network;
 pub mod persistence;
+pub mod event_logs;
