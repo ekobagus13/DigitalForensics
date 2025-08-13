@@ -1,0 +1,227 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline';">
+    <title>TriageIR GUI - Digital Forensics Triage Tool</title>
+    <link rel="stylesheet" href="styles/main.css">
+</head>
+<body>
+    <div class="app-container">
+        <!-- Header -->
+        <header class="app-header">
+            <div class="header-content">
+                <div class="logo-section">
+                    <h1>🔍 TriageIR</h1>
+                    <span class="subtitle">Digital Forensics Triage Tool</span>
+                </div>
+                <div class="status-section">
+                    <div class="cli-status" id="cliStatus">
+                        <span class="status-indicator" id="statusIndicator">⚪</span>
+                        <span class="status-text" id="statusText">Checking CLI...</span>
+                    </div>
+                </div>
+            </div>
+        </header>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <!-- Welcome Screen -->
+            <div class="welcome-screen" id="welcomeScreen">
+                <div class="welcome-content">
+                    <h2>🚀 Welcome to TriageIR</h2>
+                    <p>Professional digital forensics triage tool for rapid system analysis</p>
+                    
+                    <div class="action-buttons">
+                        <button class="btn btn-primary" id="quickScanBtn">
+                            <span class="btn-icon">⚡</span>
+                            Quick Scan
+                        </button>
+                        <button class="btn btn-secondary" id="customScanBtn">
+                            <span class="btn-icon">⚙️</span>
+                            Custom Scan
+                        </button>
+                        <button class="btn btn-secondary" id="openFileBtn">
+                            <span class="btn-icon">📁</span>
+                            Open Results
+                        </button>
+                    </div>
+
+                    <div class="info-cards">
+                        <div class="info-card">
+                            <h3>🔍 System Analysis</h3>
+                            <p>Collect running processes, network connections, and system information</p>
+                        </div>
+                        <div class="info-card">
+                            <h3>🛡️ Security Events</h3>
+                            <p>Analyze Windows event logs and security-related artifacts</p>
+                        </div>
+                        <div class="info-card">
+                            <h3>📊 Professional Reports</h3>
+                            <p>Generate comprehensive reports in multiple formats</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Scan Progress Screen -->
+            <div class="scan-screen hidden" id="scanScreen">
+                <div class="scan-content">
+                    <h2>🔄 Scanning System...</h2>
+                    <div class="progress-container">
+                        <div class="progress-bar">
+                            <div class="progress-fill" id="progressFill"></div>
+                        </div>
+                        <div class="progress-text" id="progressText">Initializing scan...</div>
+                    </div>
+                    
+                    <div class="scan-log" id="scanLog">
+                        <div class="log-header">Scan Progress:</div>
+                        <div class="log-content" id="logContent"></div>
+                    </div>
+                    
+                    <button class="btn btn-danger" id="cancelScanBtn">Cancel Scan</button>
+                </div>
+            </div>
+
+            <!-- Results Screen -->
+            <div class="results-screen hidden" id="resultsScreen">
+                <div class="results-header">
+                    <h2>📋 Scan Results</h2>
+                    <div class="results-actions">
+                        <button class="btn btn-primary" id="newScanBtn">New Scan</button>
+                        <button class="btn btn-secondary" id="saveResultsBtn">Save Results</button>
+                        <button class="btn btn-secondary" id="exportReportBtn">Export Report</button>
+                    </div>
+                </div>
+
+                <div class="results-content">
+                    <!-- Summary Cards -->
+                    <div class="summary-cards" id="summaryCards">
+                        <!-- Populated by JavaScript -->
+                    </div>
+
+                    <!-- Data Tabs -->
+                    <div class="data-tabs">
+                        <div class="tab-buttons">
+                            <button class="tab-btn active" data-tab="overview">Overview</button>
+                            <button class="tab-btn" data-tab="system">System Info</button>
+                            <button class="tab-btn" data-tab="processes">Processes</button>
+                            <button class="tab-btn" data-tab="network">Network</button>
+                            <button class="tab-btn" data-tab="persistence">Persistence</button>
+                            <button class="tab-btn" data-tab="events">Events</button>
+                        </div>
+
+                        <div class="tab-content">
+                            <div class="tab-panel active" id="overviewPanel">
+                                <h3>System Overview</h3>
+                                <div id="overviewContent"><!-- Populated by JavaScript --></div>
+                            </div>
+                            
+                            <div class="tab-panel" id="systemPanel">
+                                <h3>System Information</h3>
+                                <div id="systemContent"><!-- Populated by JavaScript --></div>
+                            </div>
+                            
+                            <div class="tab-panel" id="processesPanel">
+                                <h3>Running Processes</h3>
+                                <div class="table-container">
+                                    <table class="data-table" id="processesTable">
+                                        <thead>
+                                            <tr>
+                                                <th>PID</th>
+                                                <th>Name</th>
+                                                <th>User</th>
+                                                <th>Memory (MB)</th>
+                                                <th>Command Line</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody id="processesTableBody">
+                                            <!-- Populated by JavaScript -->
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                            
+                            <div class="tab-panel" id="networkPanel">
+                                <h3>Network Connections</h3>
+                                <div class="table-container">
+                                    <table class="data-table" id="networkTable">
+                                        <thead>
+                                            <tr>
+                                                <th>Protocol</th>
+                                                <th>Local Address</th>
+                                                <th>Local Port</th>
+                                                <th>Remote Address</th>
+                                                <th>Remote Port</th>
+                                                <th>State</th>
+                                                <th>Process</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody id="networkTableBody">
+                                            <!-- Populated by JavaScript -->
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                            
+                            <div class="tab-panel" id="persistencePanel">
+                                <h3>Persistence Mechanisms</h3>
+                                <div class="table-container">
+                                    <table class="data-table" id="persistenceTable">
+                                        <thead>
+                                            <tr>
+                                                <th>Type</th>
+                                                <th>Name</th>
+                                                <th>Location</th>
+                                                <th>Value</th>
+                                                <th>Suspicious</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody id="persistenceTableBody">
+                                            <!-- Populated by JavaScript -->
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                            
+                            <div class="tab-panel" id="eventsPanel">
+                                <h3>Event Logs</h3>
+                                <div class="table-container">
+                                    <table class="data-table" id="eventsTable">
+                                        <thead>
+                                            <tr>
+                                                <th>Log</th>
+                                                <th>Event ID</th>
+                                                <th>Level</th>
+                                                <th>Source</th>
+                                                <th>Timestamp</th>
+                                                <th>Message</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody id="eventsTableBody">
+                                            <!-- Populated by JavaScript -->
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+
+        <!-- Footer -->
+        <footer class="app-footer">
+            <div class="footer-content">
+                <span>TriageIR v1.0.0 - Professional Digital Forensics Tool</span>
+                <span id="footerStatus">Ready</span>
+            </div>
+        </footer>
+    </div>
+
+    <!-- Scripts -->
+    <script src="js/app.js"></script>
+</body>
+</html>
