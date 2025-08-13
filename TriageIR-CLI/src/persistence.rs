@@ -3,6 +3,8 @@ use winreg::enums::*;
 use winreg::RegKey;
 use std::path::Path;
 use std::fs;
+use std::process::Command;
+use regex::Regex;
 
 /// Collect all persistence mechanisms found on the system
 pub fn collect_persistence_mechanisms() -> (Vec<PersistenceMechanism>, Vec<LogEntry>) {
@@ -44,6 +46,18 @@ pub fn collect_persistence_mechanisms() -> (Vec<PersistenceMechanism>, Vec<LogEn
         }
         Err(e) => {
             logs.push(LogEntry::warn(&format!("Failed to collect service information: {}", e)));
+        }
+    }
+    
+    // Collect Scheduled Tasks via Windows Task Scheduler API
+    match collect_scheduled_tasks() {
+        Ok(tasks) => {
+            let count = tasks.len();
+            mechanisms.extend(tasks);
+            logs.push(LogEntry::info(&format!("Found {} scheduled tasks", count)));
+        }
+        Err(e) => {
+            logs.push(LogEntry::warn(&format!("Failed to collect scheduled tasks: {}", e)));
         }
     }
     
@@ -269,6 +283,136 @@ pub fn find_suspicious_mechanisms(mechanisms: &[PersistenceMechanism]) -> Vec<&P
     mechanisms.iter().filter(|m| is_mechanism_suspicious(m)).collect()
 }
 
+/// Collect scheduled tasks via Windows Task Scheduler API
+fn collect_scheduled_tasks() -> Result<Vec<PersistenceMechanism>, String> {
+    let mut mechanisms = Vec::new();
+    
+    // Use schtasks.exe to enumerate all scheduled tasks
+    match Command::new("schtasks")
+        .args(&["/query", "/fo", "csv", "/v"])
+        .output() {
+        Ok(output) => {
+            if output.status.success() {
+                let output_str = String::from_utf8_lossy(&output.stdout);
+                let lines: Vec<&str> = output_str.lines().collect();
+                
+                if lines.len() > 1 {
+                    // Parse CSV header to understand column positions
+                    let header = lines[0];
+                    let columns: Vec<&str> = parse_csv_line(header);
+                    
+                    // Find column indices
+                    let task_name_idx = find_column_index(&columns, "TaskName");
+                    let status_idx = find_column_index(&columns, "Status");
+                    let run_as_user_idx = find_column_index(&columns, "Run As User");
+                    let task_to_run_idx = find_column_index(&columns, "Task To Run");
+                    
+                    // Parse each task line
+                    for line in lines.iter().skip(1) {
+                        if line.trim().is_empty() {
+                            continue;
+                        }
+                        
+                        let fields = parse_csv_line(line);
+                        
+                        let task_name = get_field(&fields, task_name_idx).unwrap_or("Unknown");
+                        let task_path = if task_name.starts_with('\\') {
+                            task_name.to_string()
+                        } else {
+                            format!("\\{}", task_name)
+                        };
+                        
+                        let status = get_field(&fields, status_idx).unwrap_or("Unknown");
+                        let run_as_user = get_field(&fields, run_as_user_idx).unwrap_or("Unknown");
+                        let command = get_field(&fields, task_to_run_idx).unwrap_or("Unknown");
+                        
+                        // Only include enabled/ready tasks or suspicious ones
+                        if status.eq_ignore_ascii_case("Ready") || 
+                           status.eq_ignore_ascii_case("Running") ||
+                           is_suspicious_task_command(command) {
+                            
+                            let clean_name = extract_task_name(&task_path);
+                            let source = format!("Task Scheduler: {}", task_path);
+                            
+                            mechanisms.push(PersistenceMechanism::new(
+                                PersistenceType::ScheduledTask.as_str().to_string(),
+                                clean_name,
+                                format!("{} (User: {})", command, run_as_user),
+                                source,
+                            ));
+                        }
+                    }
+                }
+            } else {
+                return Err("schtasks command failed".to_string());
+            }
+        }
+        Err(e) => {
+            return Err(format!("Failed to execute schtasks: {}", e));
+        }
+    }
+    
+    Ok(mechanisms)
+}
+
+/// Check if a scheduled task command appears suspicious
+fn is_suspicious_task_command(command: &str) -> bool {
+    let command_lower = command.to_lowercase();
+    
+    let suspicious_patterns = vec![
+        "powershell", "cmd.exe", "wscript", "cscript", "regsvr32",
+        "rundll32", "mshta", "bitsadmin", "certutil", "temp\\", "tmp\\",
+        "appdata\\", "downloads\\", "public\\", ".bat", ".cmd", ".ps1", ".vbs", ".js"
+    ];
+    
+    suspicious_patterns.iter().any(|&pattern| command_lower.contains(pattern))
+}
+
+/// Parse CSV line (simple implementation)
+fn parse_csv_line(line: &str) -> Vec<&str> {
+    // Simple CSV parsing - handles quoted fields
+    let mut fields = Vec::new();
+    let mut current_field = String::new();
+    let mut in_quotes = false;
+    let mut chars = line.chars().peekable();
+    
+    while let Some(ch) = chars.next() {
+        match ch {
+            '"' => {
+                in_quotes = !in_quotes;
+            }
+            ',' if !in_quotes => {
+                fields.push(current_field.trim());
+                current_field = String::new();
+            }
+            _ => {
+                current_field.push(ch);
+            }
+        }
+    }
+    
+    // Add the last field
+    fields.push(current_field.trim());
+    
+    // Convert to Vec<&str> by leaking the strings (for simplicity in this context)
+    fields.into_iter().map(|s| Box::leak(s.into_boxed_str()) as &str).collect()
+}
+
+/// Find column index by name
+fn find_column_index(columns: &[&str], column_name: &str) -> Option<usize> {
+    columns.iter().position(|&col| col.eq_ignore_ascii_case(column_name))
+}
+
+/// Get field by index
+fn get_field(fields: &[&str], index: Option<usize>) -> Option<&str> {
+    index.and_then(|i| fields.get(i)).copied()
+}
+
+/// Extract task name from path
+fn extract_task_name(task_path: &str) -> String {
+    task_path.split('\\').last().unwrap_or(task_path).to_string()
+}
+
 /// Check if a persistence mechanism appears suspicious
 fn is_mechanism_suspicious(mechanism: &PersistenceMechanism) -> bool {
     let command_lower = mechanism.command.to_lowercase();
@@ -396,5 +540,51 @@ mod tests {
         assert_eq!(hive_to_string(HKEY_LOCAL_MACHINE), "HKLM");
         assert_eq!(hive_to_string(HKEY_CURRENT_USER), "HKCU");
         assert_eq!(hive_to_string(HKEY_CLASSES_ROOT), "HKCR");
+    }
+
+    #[test]
+    fn test_is_suspicious_task_command() {
+        // Suspicious commands should be flagged
+        assert!(is_suspicious_task_command("powershell.exe -ExecutionPolicy Bypass"));
+        assert!(is_suspicious_task_command("cmd.exe /c malware.bat"));
+        assert!(is_suspicious_task_command("C:\\Temp\\malware.exe"));
+        assert!(is_suspicious_task_command("wscript.exe script.vbs"));
+        
+        // Normal commands should not be flagged
+        assert!(!is_suspicious_task_command("C:\\Program Files\\Adobe\\Updater\\updater.exe"));
+        assert!(!is_suspicious_task_command("C:\\Windows\\System32\\svchost.exe"));
+    }
+
+    #[test]
+    fn test_parse_csv_line() {
+        let line = r#""Task Name","Status","Run As User""#;
+        let fields = parse_csv_line(line);
+        assert_eq!(fields.len(), 3);
+        assert_eq!(fields[0], "Task Name");
+        assert_eq!(fields[1], "Status");
+        assert_eq!(fields[2], "Run As User");
+        
+        let line_with_commas = r#""Adobe Acrobat Update Task","Ready","NT AUTHORITY\SYSTEM""#;
+        let fields = parse_csv_line(line_with_commas);
+        assert_eq!(fields.len(), 3);
+        assert_eq!(fields[0], "Adobe Acrobat Update Task");
+        assert_eq!(fields[1], "Ready");
+        assert_eq!(fields[2], "NT AUTHORITY\\SYSTEM");
+    }
+
+    #[test]
+    fn test_find_column_index() {
+        let columns = vec!["TaskName", "Status", "Run As User"];
+        assert_eq!(find_column_index(&columns, "TaskName"), Some(0));
+        assert_eq!(find_column_index(&columns, "Status"), Some(1));
+        assert_eq!(find_column_index(&columns, "Run As User"), Some(2));
+        assert_eq!(find_column_index(&columns, "NonExistent"), None);
+    }
+
+    #[test]
+    fn test_extract_task_name() {
+        assert_eq!(extract_task_name("\\Microsoft\\Windows\\UpdateOrchestrator\\Schedule Scan"), "Schedule Scan");
+        assert_eq!(extract_task_name("\\Adobe Updater Task"), "Adobe Updater Task");
+        assert_eq!(extract_task_name("SimpleTask"), "SimpleTask");
     }
 }

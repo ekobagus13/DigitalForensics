@@ -1,5 +1,5 @@
 use crate::types::{NetworkConnection, LogEntry};
-use sysinfo::{System, SystemExt, NetworkExt};
+use sysinfo::System;
 use std::collections::HashMap;
 
 #[cfg(windows)]
@@ -58,7 +58,7 @@ pub fn collect_network_connections() -> (Vec<NetworkConnection>, Vec<LogEntry>) 
 
 /// Collect TCP connections using Windows API
 #[cfg(windows)]
-fn collect_tcp_connections() -> Result<Vec<NetworkConnection>, String> {
+fn collect_tcp_connections() -> std::result::Result<Vec<NetworkConnection>, String> {
     let mut connections = Vec::new();
     
     unsafe {
@@ -127,7 +127,7 @@ fn collect_tcp_connections() -> Result<Vec<NetworkConnection>, String> {
 
 /// Collect UDP connections using Windows API
 #[cfg(windows)]
-fn collect_udp_connections() -> Result<Vec<NetworkConnection>, String> {
+fn collect_udp_connections() -> std::result::Result<Vec<NetworkConnection>, String> {
     let mut connections = Vec::new();
     
     unsafe {
@@ -189,22 +189,21 @@ fn collect_udp_connections() -> Result<Vec<NetworkConnection>, String> {
 
 /// Fallback implementation for non-Windows platforms or when Windows API fails
 #[cfg(not(windows))]
-fn collect_tcp_connections() -> Result<Vec<NetworkConnection>, String> {
+fn collect_tcp_connections() -> std::result::Result<Vec<NetworkConnection>, String> {
     // Fallback implementation using sysinfo
     collect_connections_fallback("TCP")
 }
 
 #[cfg(not(windows))]
-fn collect_udp_connections() -> Result<Vec<NetworkConnection>, String> {
+fn collect_udp_connections() -> std::result::Result<Vec<NetworkConnection>, String> {
     // Fallback implementation using sysinfo
     collect_connections_fallback("UDP")
 }
 
 /// Fallback network connection collection using available system information
-fn collect_connections_fallback(protocol: &str) -> Result<Vec<NetworkConnection>, String> {
-    let mut connections = Vec::new();
-    let mut sys = System::new_all();
-    sys.refresh_networks();
+fn collect_connections_fallback(_protocol: &str) -> std::result::Result<Vec<NetworkConnection>, String> {
+    let connections = Vec::new();
+    let _sys = System::new_all();
     
     // This is a simplified fallback - real implementation would need platform-specific code
     // For now, we'll return empty connections with a warning
@@ -252,7 +251,7 @@ pub fn get_network_active_pids(connections: &[NetworkConnection]) -> Vec<u32> {
 }
 
 /// Filter connections by protocol
-pub fn filter_connections_by_protocol(connections: &[NetworkConnection], protocol: &str) -> Vec<&NetworkConnection> {
+pub fn filter_connections_by_protocol<'a>(connections: &'a [NetworkConnection], protocol: &str) -> Vec<&'a NetworkConnection> {
     connections.iter().filter(|c| c.protocol == protocol).collect()
 }
 
