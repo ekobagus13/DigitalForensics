@@ -8,7 +8,7 @@
         "log_name": "System",
         "message": "The Windows Update service entered the running state.",
         "source": "Service Control Manager",
-        "timestamp": "2025-08-13T01:43:26.320765900+00:00"
+        "timestamp": "2025-08-13T02:20:34.052175200+00:00"
       },
       {
         "computer": "ANKIT",
@@ -17,7 +17,7 @@
         "log_name": "Security",
         "message": "An account was successfully logged on.",
         "source": "Microsoft-Windows-Security-Auditing",
-        "timestamp": "2025-08-13T01:43:26.320781800+00:00"
+        "timestamp": "2025-08-13T02:20:34.052179600+00:00"
       }
     ],
     "network_connections": [
@@ -66,7 +66,7 @@
         "name": "System",
         "parent_pid": 0,
         "pid": 4,
-        "start_time": "2025-08-13T01:43:26.320748900+00:00",
+        "start_time": "2025-08-13T02:20:34.052164+00:00",
         "user": "NT AUTHORITY\\SYSTEM"
       },
       {
@@ -76,7 +76,7 @@
         "name": "explorer.exe",
         "parent_pid": 800,
         "pid": 1000,
-        "start_time": "2025-08-13T01:43:26.320751500+00:00",
+        "start_time": "2025-08-13T02:20:34.052166500+00:00",
         "user": "thisi"
       }
     ],
@@ -84,7 +84,7 @@
       "architecture": "x86_64",
       "current_user": "thisi",
       "hostname": "ANKIT",
-      "last_boot_time": "2025-08-13T01:43:26.320747100+00:00",
+      "last_boot_time": "2025-08-13T02:20:34.052162200+00:00",
       "os_name": "Windows_NT",
       "os_version": "Windows 10+",
       "uptime_hours": 24.5
@@ -94,33 +94,33 @@
     {
       "level": "INFO",
       "message": "System information collected",
-      "timestamp": "2025-08-13T01:43:26.320782900+00:00"
+      "timestamp": "2025-08-13T02:20:34.052180500+00:00"
     },
     {
       "level": "INFO",
       "message": "Process enumeration completed",
-      "timestamp": "2025-08-13T01:43:26.320786500+00:00"
+      "timestamp": "2025-08-13T02:20:34.052183+00:00"
     },
     {
       "level": "INFO",
       "message": "Network connections collected",
-      "timestamp": "2025-08-13T01:43:26.320788+00:00"
+      "timestamp": "2025-08-13T02:20:34.052183600+00:00"
     },
     {
       "level": "INFO",
       "message": "Persistence mechanisms detected",
-      "timestamp": "2025-08-13T01:43:26.320788600+00:00"
+      "timestamp": "2025-08-13T02:20:34.052184200+00:00"
     },
     {
       "level": "INFO",
       "message": "Event logs collected",
-      "timestamp": "2025-08-13T01:43:26.320793600+00:00"
+      "timestamp": "2025-08-13T02:20:34.052187800+00:00"
     }
   ],
   "scan_metadata": {
     "hostname": "ANKIT",
-    "scan_duration_seconds": 0.0005725,
-    "timestamp": "2025-08-13T01:43:26.320700100+00:00",
+    "scan_duration_seconds": 0.000477,
+    "timestamp": "2025-08-13T02:20:34.052142300+00:00",
     "total_artifacts": 6,
     "version": "0.1.0"
   }
