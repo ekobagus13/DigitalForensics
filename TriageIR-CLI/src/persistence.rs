@@ -98,12 +98,21 @@ fn collect_registry_run_keys() -> Result<Vec<PersistenceMechanism>, String> {
                                 hive_to_string(hive), 
                                 path
                             );
+                            let location = format!("{}\\{}\\{}", 
+                                hive_to_string(hive), 
+                                path,
+                                name
+                            );
+                            let is_suspicious = is_mechanism_suspicious_by_command(&command);
                             
-                            mechanisms.push(PersistenceMechanism::new(
+                            mechanisms.push(PersistenceMechanism::new_with_location_value(
                                 PersistenceType::RegistryRunKey.as_str().to_string(),
                                 name,
-                                command,
+                                command.clone(),
                                 source,
+                                location,
+                                command,
+                                is_suspicious,
                             ));
                         }
                         Err(_) => {
@@ -141,12 +150,17 @@ fn collect_startup_folder_entries() -> Result<Vec<PersistenceMechanism>, String>
                             if let Some(file_name) = file_path.file_name() {
                                 let name = file_name.to_string_lossy().to_string();
                                 let command = file_path.to_string_lossy().to_string();
+                                let location = command.clone();
+                                let is_suspicious = is_mechanism_suspicious_by_command(&command);
                                 
-                                mechanisms.push(PersistenceMechanism::new(
+                                mechanisms.push(PersistenceMechanism::new_with_location_value(
                                     PersistenceType::StartupFolder.as_str().to_string(),
                                     name,
-                                    command,
+                                    command.clone(),
                                     path.clone(),
+                                    location,
+                                    command,
+                                    is_suspicious,
                                 ));
                             }
                         }
@@ -178,12 +192,17 @@ fn collect_service_persistence() -> Result<Vec<PersistenceMechanism>, String> {
                 // Look for potentially suspicious characteristics
                 if is_potentially_suspicious_service(&service_name, &image_path) {
                     let source = format!(r"HKLM\SYSTEM\CurrentControlSet\Services\{}", service_name);
+                    let location = format!(r"HKLM\SYSTEM\CurrentControlSet\Services\{}\ImagePath", service_name);
+                    let is_suspicious = is_mechanism_suspicious_by_command(&image_path);
                     
-                    mechanisms.push(PersistenceMechanism::new(
+                    mechanisms.push(PersistenceMechanism::new_with_location_value(
                         PersistenceType::Service.as_str().to_string(),
                         service_name,
-                        image_path,
+                        image_path.clone(),
                         source,
+                        location,
+                        image_path,
+                        is_suspicious,
                     ));
                 }
             }
@@ -332,12 +351,18 @@ fn collect_scheduled_tasks() -> Result<Vec<PersistenceMechanism>, String> {
                             
                             let clean_name = extract_task_name(&task_path);
                             let source = format!("Task Scheduler: {}", task_path);
+                            let location = format!("Task Scheduler: {}", task_path);
+                            let value = format!("{} (User: {})", command, run_as_user);
+                            let is_suspicious = is_mechanism_suspicious_by_command(command) || is_suspicious_task_command(command);
                             
-                            mechanisms.push(PersistenceMechanism::new(
+                            mechanisms.push(PersistenceMechanism::new_with_location_value(
                                 PersistenceType::ScheduledTask.as_str().to_string(),
                                 clean_name,
-                                format!("{} (User: {})", command, run_as_user),
+                                value.clone(),
                                 source,
+                                location,
+                                value,
+                                is_suspicious,
                             ));
                         }
                     }
@@ -365,6 +390,31 @@ fn is_suspicious_task_command(command: &str) -> bool {
     ];
     
     suspicious_patterns.iter().any(|&pattern| command_lower.contains(pattern))
+}
+
+/// Check if a mechanism is suspicious based on command/path analysis
+fn is_mechanism_suspicious_by_command(command: &str) -> bool {
+    let command_lower = command.to_lowercase();
+    
+    let suspicious_indicators = vec![
+        // Temporary directories
+        "temp", "tmp", "appdata\\local\\temp", "appdata\\roaming\\temp",
+        // Common malware paths
+        "programdata", "users\\public", "%public%",
+        // Suspicious executables
+        "powershell", "cmd.exe", "wmic", "rundll32", "regsvr32", "mshta",
+        "certutil", "bitsadmin", "schtasks", "at.exe",
+        // Suspicious arguments
+        "bypass", "encodedcommand", "hidden", "windowstyle hidden",
+        // Network/download related
+        "downloadstring", "webclient", "invoke-webrequest", "curl", "wget",
+        // Script execution
+        "iex", "invoke-expression", "eval",
+        // Encoding/obfuscation
+        "base64", "frombase64string", "convert::frombase64string",
+    ];
+    
+    suspicious_indicators.iter().any(|&indicator| command_lower.contains(indicator))
 }
 
 /// Parse CSV line (simple implementation)

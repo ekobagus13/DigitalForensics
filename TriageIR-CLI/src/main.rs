@@ -111,6 +111,8 @@ fn main() {
             "command_line": p.command_line,
             "executable_path": p.executable_path,
             "sha256_hash": p.sha256_hash,
+            "user": p.user,
+            "memory_usage_mb": p.memory_usage_mb,
             "loaded_modules": p.loaded_modules.into_iter().map(|m| {
                 json!({
                     "name": m.name,
@@ -139,9 +141,12 @@ fn main() {
         json!({
             "protocol": conn.protocol,
             "local_address": conn.local_address,
+            "local_port": conn.local_port,
             "remote_address": conn.remote_address,
+            "remote_port": conn.remote_port,
             "state": conn.state,
             "owning_pid": conn.owning_pid,
+            "process_name": conn.process_name,
             "is_external": conn.is_external()
         })
     }).collect::<Vec<_>>();
@@ -162,7 +167,10 @@ fn main() {
             "type": p.mechanism_type,
             "name": p.name,
             "command": p.command,
-            "source": p.source
+            "source": p.source,
+            "location": p.location,
+            "value": p.value,
+            "is_suspicious": p.is_suspicious
         })
     }).collect::<Vec<_>>();
     
@@ -184,7 +192,8 @@ fn main() {
                 "event_id": e.event_id,
                 "level": e.level,
                 "timestamp": e.timestamp,
-                "message": e.message
+                "message": e.message,
+                "source": e.source
             })
         }).collect::<Vec<_>>(),
         "system": event_logs_data.system.into_iter().map(|e| {
@@ -192,7 +201,8 @@ fn main() {
                 "event_id": e.event_id,
                 "level": e.level,
                 "timestamp": e.timestamp,
-                "message": e.message
+                "message": e.message,
+                "source": e.source
             })
         }).collect::<Vec<_>>(),
         "application": event_logs_data.application.into_iter().map(|e| {
@@ -200,7 +210,8 @@ fn main() {
                 "event_id": e.event_id,
                 "level": e.level,
                 "timestamp": e.timestamp,
-                "message": e.message
+                "message": e.message,
+                "source": e.source
             })
         }).collect::<Vec<_>>()
     });
@@ -310,9 +321,12 @@ fn main() {
             "scan_id": scan_results.scan_metadata.scan_id,
             "scan_start_utc": scan_results.scan_metadata.scan_start_utc,
             "scan_duration_ms": duration.as_millis() as u64,
+            "scan_duration_seconds": duration.as_secs_f64(),
+            "timestamp": chrono::Utc::now().to_rfc3339(),
             "hostname": hostname,
             "os_version": scan_results.scan_metadata.os_version,
             "cli_version": scan_results.scan_metadata.cli_version,
+            "version": scan_results.scan_metadata.cli_version,
             "total_artifacts": total_artifacts,
             "collection_summary": {
                 "total_logs": log_summary.total_count,

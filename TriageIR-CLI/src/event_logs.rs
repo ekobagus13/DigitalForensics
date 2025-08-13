@@ -127,7 +127,8 @@ fn collect_events_from_log(log_name: &str, event_filter: HashMap<u32, &str>) -> 
                 &mut bytes_needed,
             ).is_ok() {
                 // Parse the event record
-                if let Ok(event) = parse_event_record(&buffer[..bytes_read as usize], &event_filter) {
+                if let Ok(mut event) = parse_event_record(&buffer[..bytes_read as usize], &event_filter) {
+                    event.source = log_name.to_string(); // Set the correct source
                     events.push(event);
                 }
             }
@@ -175,11 +176,12 @@ fn parse_event_record(buffer: &[u8], event_filter: &HashMap<u32, &str>) -> std::
             .unwrap_or(&"Unknown event")
             .to_string();
         
-        Ok(EventLogEntry::new(
+        Ok(EventLogEntry::new_with_source(
             record.EventID,
             level,
             timestamp,
             message,
+            "Security".to_string(), // This will be set by the calling function
         ))
     }
 }
@@ -414,9 +416,9 @@ mod tests {
     #[test]
     fn test_filter_events_by_id() {
         let events = vec![
-            EventLogEntry::new(4624, "Information".to_string(), "2023-01-01T00:00:00Z".to_string(), "Logon".to_string()),
-            EventLogEntry::new(4625, "Warning".to_string(), "2023-01-01T00:01:00Z".to_string(), "Failed logon".to_string()),
-            EventLogEntry::new(4624, "Information".to_string(), "2023-01-01T00:02:00Z".to_string(), "Another logon".to_string()),
+            EventLogEntry::new_with_source(4624, "Information".to_string(), "2023-01-01T00:00:00Z".to_string(), "Logon".to_string(), "Security".to_string()),
+            EventLogEntry::new_with_source(4625, "Warning".to_string(), "2023-01-01T00:01:00Z".to_string(), "Failed logon".to_string(), "Security".to_string()),
+            EventLogEntry::new_with_source(4624, "Information".to_string(), "2023-01-01T00:02:00Z".to_string(), "Another logon".to_string(), "Security".to_string()),
         ];
         
         let logon_events = filter_events_by_id(&events, 4624);
@@ -429,9 +431,9 @@ mod tests {
     #[test]
     fn test_filter_events_by_level() {
         let events = vec![
-            EventLogEntry::new(1001, "Information".to_string(), "2023-01-01T00:00:00Z".to_string(), "Info event".to_string()),
-            EventLogEntry::new(1002, "Warning".to_string(), "2023-01-01T00:01:00Z".to_string(), "Warning event".to_string()),
-            EventLogEntry::new(1003, "Error".to_string(), "2023-01-01T00:02:00Z".to_string(), "Error event".to_string()),
+            EventLogEntry::new_with_source(1001, "Information".to_string(), "2023-01-01T00:00:00Z".to_string(), "Info event".to_string(), "Application".to_string()),
+            EventLogEntry::new_with_source(1002, "Warning".to_string(), "2023-01-01T00:01:00Z".to_string(), "Warning event".to_string(), "System".to_string()),
+            EventLogEntry::new_with_source(1003, "Error".to_string(), "2023-01-01T00:02:00Z".to_string(), "Error event".to_string(), "System".to_string()),
         ];
         
         let info_events = filter_events_by_level(&events, "Information");
@@ -447,10 +449,10 @@ mod tests {
     #[test]
     fn test_find_logon_events() {
         let events = vec![
-            EventLogEntry::new(4624, "Information".to_string(), "2023-01-01T00:00:00Z".to_string(), "Successful logon".to_string()),
-            EventLogEntry::new(4625, "Warning".to_string(), "2023-01-01T00:01:00Z".to_string(), "Failed logon".to_string()),
-            EventLogEntry::new(4688, "Information".to_string(), "2023-01-01T00:02:00Z".to_string(), "Process created".to_string()),
-            EventLogEntry::new(4634, "Information".to_string(), "2023-01-01T00:03:00Z".to_string(), "Logoff".to_string()),
+            EventLogEntry::new_with_source(4624, "Information".to_string(), "2023-01-01T00:00:00Z".to_string(), "Successful logon".to_string(), "Security".to_string()),
+            EventLogEntry::new_with_source(4625, "Warning".to_string(), "2023-01-01T00:01:00Z".to_string(), "Failed logon".to_string(), "Security".to_string()),
+            EventLogEntry::new_with_source(4688, "Information".to_string(), "2023-01-01T00:02:00Z".to_string(), "Process created".to_string(), "Security".to_string()),
+            EventLogEntry::new_with_source(4634, "Information".to_string(), "2023-01-01T00:03:00Z".to_string(), "Logoff".to_string(), "Security".to_string()),
         ];
         
         let logon_events = find_logon_events(&events);
@@ -460,9 +462,9 @@ mod tests {
     #[test]
     fn test_find_process_events() {
         let events = vec![
-            EventLogEntry::new(4624, "Information".to_string(), "2023-01-01T00:00:00Z".to_string(), "Logon".to_string()),
-            EventLogEntry::new(4688, "Information".to_string(), "2023-01-01T00:01:00Z".to_string(), "Process created".to_string()),
-            EventLogEntry::new(4689, "Information".to_string(), "2023-01-01T00:02:00Z".to_string(), "Process exited".to_string()),
+            EventLogEntry::new_with_source(4624, "Information".to_string(), "2023-01-01T00:00:00Z".to_string(), "Logon".to_string(), "Security".to_string()),
+            EventLogEntry::new_with_source(4688, "Information".to_string(), "2023-01-01T00:01:00Z".to_string(), "Process created".to_string(), "Security".to_string()),
+            EventLogEntry::new_with_source(4689, "Information".to_string(), "2023-01-01T00:02:00Z".to_string(), "Process exited".to_string(), "Security".to_string()),
         ];
         
         let process_events = find_process_events(&events);
@@ -472,9 +474,9 @@ mod tests {
     #[test]
     fn test_get_recent_events() {
         let events = vec![
-            EventLogEntry::new(1001, "Information".to_string(), "2023-01-01T00:00:00Z".to_string(), "Event 1".to_string()),
-            EventLogEntry::new(1002, "Information".to_string(), "2023-01-01T00:02:00Z".to_string(), "Event 2".to_string()),
-            EventLogEntry::new(1003, "Information".to_string(), "2023-01-01T00:01:00Z".to_string(), "Event 3".to_string()),
+            EventLogEntry::new_with_source(1001, "Information".to_string(), "2023-01-01T00:00:00Z".to_string(), "Event 1".to_string(), "Application".to_string()),
+            EventLogEntry::new_with_source(1002, "Information".to_string(), "2023-01-01T00:02:00Z".to_string(), "Event 2".to_string(), "System".to_string()),
+            EventLogEntry::new_with_source(1003, "Information".to_string(), "2023-01-01T00:01:00Z".to_string(), "Event 3".to_string(), "Security".to_string()),
         ];
         
         let recent = get_recent_events(&events, 2);
