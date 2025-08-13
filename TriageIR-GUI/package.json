@@ -1,15 +1,21 @@
 {
-  "name": "triageir-gui",
+  "name": "triageir-gui-new",
   "version": "1.0.0",
-  "description": "TriageIR GUI - Simple and Functional Forensic Tool Interface",
-  "main": "main.js",
+  "description": "TriageIR GUI - Clean and Functional Interface",
+  "main": "src/main.js",
   "scripts": {
     "start": "electron .",
     "dev": "electron . --dev",
     "build": "electron-builder",
-    "test": "echo \"No tests specified\""
+    "test": "node test.js"
   },
-  "keywords": ["forensics", "security", "incident-response", "gui"],
+  "keywords": [
+    "forensics",
+    "incident-response",
+    "digital-forensics",
+    "triage",
+    "security"
+  ],
   "author": "TriageIR Team",
   "license": "MIT",
   "devDependencies": {
@@ -23,13 +29,19 @@
       "output": "dist"
     },
     "files": [
-      "**/*",
-      "!node_modules",
-      "!dist"
+      "src/**/*",
+      "node_modules/**/*",
+      "package.json"
     ],
     "win": {
       "target": "nsis",
-      "icon": "icon.ico"
-    }
+      "icon": "assets/icon.ico"
+    },
+    "extraResources": [
+      {
+        "from": "../TriageIR-CLI/target/release/triageir-cli.exe",
+        "to": "triageir-cli.exe"
+      }
+    ]
   }
 }
