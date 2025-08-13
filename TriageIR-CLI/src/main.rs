@@ -99,17 +99,44 @@ fn main() {
         })
     }).collect::<Vec<_>>();
     
-    // Collect event logs (simplified)
-    let event_logs = collect_event_logs(&hostname);
+    // Collect event logs using the event_logs module
+    let (event_logs_data, event_logs_collection_logs) = event_logs::collect_event_logs();
+    let total_event_entries = event_logs_data.total_entries();
+    let event_logs = json!({
+        "security": event_logs_data.security.into_iter().map(|e| {
+            json!({
+                "event_id": e.event_id,
+                "level": e.level,
+                "timestamp": e.timestamp,
+                "message": e.message
+            })
+        }).collect::<Vec<_>>(),
+        "system": event_logs_data.system.into_iter().map(|e| {
+            json!({
+                "event_id": e.event_id,
+                "level": e.level,
+                "timestamp": e.timestamp,
+                "message": e.message
+            })
+        }).collect::<Vec<_>>(),
+        "application": event_logs_data.application.into_iter().map(|e| {
+            json!({
+                "event_id": e.event_id,
+                "level": e.level,
+                "timestamp": e.timestamp,
+                "message": e.message
+            })
+        }).collect::<Vec<_>>()
+    });
     
-    let total_artifacts = processes.len() + network_connections.len() + persistence_mechanisms.len() + event_logs.len();
+    let total_artifacts = processes.len() + network_connections.len() + persistence_mechanisms.len() + total_event_entries;
     
     if matches.get_flag("verbose") {
         println!("✓ System information collected");
         println!("✓ Running processes enumerated ({} processes)", processes.len());
         println!("✓ Network connections analyzed ({} connections)", network_connections.len());
         println!("✓ Persistence mechanisms detected ({} mechanisms)", persistence_mechanisms.len());
-        println!("✓ Event logs collected ({} entries)", event_logs.len());
+        println!("✓ Event logs collected ({} entries)", event_logs_data.total_entries());
     }
 
     let duration = start_time.elapsed();
@@ -130,7 +157,7 @@ fn main() {
             "persistence_mechanisms": persistence_mechanisms,
             "event_logs": event_logs
         },
-        "collection_log": create_collection_log(process_logs, network_logs, persistence_logs)
+        "collection_log": create_collection_log(process_logs, network_logs, persistence_logs, event_logs_collection_logs)
     });
 
     if matches.get_flag("verbose") {
@@ -188,75 +215,9 @@ fn collect_system_info(sys: &System, hostname: &str, username: &str) -> serde_js
 
 
 
-fn collect_event_logs(hostname: &str) -> Vec<serde_json::Value> {
-    let mut events = Vec::new();
-    
-    // Simplified event log collection using Windows Event Log command
-    if let Ok(output) = std::process::Command::new("wevtutil")
-        .args(["qe", "System", "/c:10", "/rd:true", "/f:text"])
-        .output() {
-        if let Ok(event_output) = String::from_utf8(output.stdout) {
-            let mut current_event = HashMap::new();
-            
-            for line in event_output.lines() {
-                if line.starts_with("Event[") {
-                    if !current_event.is_empty() {
-                        events.push(create_event_from_map(&current_event, hostname));
-                        current_event.clear();
-                    }
-                } else if line.contains(":") {
-                    let parts: Vec<&str> = line.splitn(2, ':').collect();
-                    if parts.len() == 2 {
-                        current_event.insert(parts[0].trim().to_string(), parts[1].trim().to_string());
-                    }
-                }
-            }
-            
-            if !current_event.is_empty() {
-                events.push(create_event_from_map(&current_event, hostname));
-            }
-        }
-    }
-    
-    // Add some common events if we couldn't collect real ones
-    if events.is_empty() {
-        events.push(json!({
-            "log_name": "System",
-            "event_id": 7036,
-            "level": "Information",
-            "source": "Service Control Manager",
-            "timestamp": chrono::Utc::now().to_rfc3339(),
-            "message": "The Windows Update service entered the running state.",
-            "computer": hostname
-        }));
-        
-        events.push(json!({
-            "log_name": "Security",
-            "event_id": 4624,
-            "level": "Information",
-            "source": "Microsoft-Windows-Security-Auditing",
-            "timestamp": chrono::Utc::now().to_rfc3339(),
-            "message": "An account was successfully logged on.",
-            "computer": hostname
-        }));
-    }
-    
-    events
-}
 
-fn create_event_from_map(event_map: &HashMap<String, String>, hostname: &str) -> serde_json::Value {
-    json!({
-        "log_name": event_map.get("Log Name").unwrap_or(&"Unknown".to_string()),
-        "event_id": event_map.get("Event ID").and_then(|s| s.parse::<u32>().ok()).unwrap_or(0),
-        "level": event_map.get("Level").unwrap_or(&"Information".to_string()),
-        "source": event_map.get("Source").unwrap_or(&"Unknown".to_string()),
-        "timestamp": event_map.get("Date and Time").unwrap_or(&chrono::Utc::now().to_rfc3339()),
-        "message": event_map.get("Description").unwrap_or(&"No description available".to_string()),
-        "computer": hostname
-    })
-}
 
-fn create_collection_log(process_logs: Vec<types::LogEntry>, network_logs: Vec<types::LogEntry>, persistence_logs: Vec<types::LogEntry>) -> Vec<serde_json::Value> {
+fn create_collection_log(process_logs: Vec<types::LogEntry>, network_logs: Vec<types::LogEntry>, persistence_logs: Vec<types::LogEntry>, event_logs_logs: Vec<types::LogEntry>) -> Vec<serde_json::Value> {
     let mut all_logs = Vec::new();
     
     // Add process collection logs
@@ -286,17 +247,20 @@ fn create_collection_log(process_logs: Vec<types::LogEntry>, network_logs: Vec<t
         }));
     }
     
+    // Add event logs collection logs
+    for log in event_logs_logs {
+        all_logs.push(json!({
+            "timestamp": log.timestamp,
+            "level": log.level,
+            "message": log.message
+        }));
+    }
+    
     // Add other collection logs
     all_logs.push(json!({
         "timestamp": chrono::Utc::now().to_rfc3339(),
         "level": "INFO",
         "message": "System information collected"
-    }));
-    
-    all_logs.push(json!({
-        "timestamp": chrono::Utc::now().to_rfc3339(),
-        "level": "INFO",
-        "message": "Event logs collected"
     }));
     
     all_logs
