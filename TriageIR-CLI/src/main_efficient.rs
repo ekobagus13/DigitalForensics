@@ -1,7 +1,7 @@
 use clap::{Arg, Command};
 use serde_json::json;
 use std::fs;
-use sysinfo::System;
+use sysinfo::{System, Pid, Process};
 use std::collections::HashMap;
 
 fn main() {
@@ -265,10 +265,9 @@ fn collect_persistence_mechanisms() -> Vec<serde_json::Value> {
     let mut mechanisms = Vec::new();
     
     // Check common registry run keys
-    let hklm = winreg::RegKey::predef(winreg::enums::HKEY_LOCAL_MACHINE);
-    if let Ok(run_key) = hklm.open_subkey("SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Run") {
-        for result in run_key.enum_values() {
-            if let Ok((name, value)) = result {
+    if let Ok(hklm) = winreg::RegKey::predef(winreg::enums::HKEY_LOCAL_MACHINE) {
+        if let Ok(run_key) = hklm.open_subkey("SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Run") {
+            for (name, value) in run_key.enum_values().filter_map(|x| x.ok()) {
                 mechanisms.push(json!({
                     "type": "Registry Run Key",
                     "location": "HKEY_LOCAL_MACHINE\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Run",
@@ -281,10 +280,9 @@ fn collect_persistence_mechanisms() -> Vec<serde_json::Value> {
     }
     
     // Check user-specific run keys
-    let hkcu = winreg::RegKey::predef(winreg::enums::HKEY_CURRENT_USER);
-    if let Ok(run_key) = hkcu.open_subkey("SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Run") {
-        for result in run_key.enum_values() {
-            if let Ok((name, value)) = result {
+    if let Ok(hkcu) = winreg::RegKey::predef(winreg::enums::HKEY_CURRENT_USER) {
+        if let Ok(run_key) = hkcu.open_subkey("SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Run") {
+            for (name, value) in run_key.enum_values().filter_map(|x| x.ok()) {
                 mechanisms.push(json!({
                     "type": "Registry Run Key (User)",
                     "location": "HKEY_CURRENT_USER\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Run",

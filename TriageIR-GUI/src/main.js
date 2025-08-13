@@ -139,14 +139,12 @@ class TriageIRMain {
 
     async executeScan(options = {}) {
         return new Promise((resolve, reject) => {
-            const args = [];
+            // Create a temporary output file for clean JSON
+            const tempFile = path.join(__dirname, `temp-scan-${Date.now()}.json`);
+            const args = ['--output', tempFile];
             
             if (options.verbose) {
                 args.push('--verbose');
-            }
-            
-            if (options.outputFile) {
-                args.push('--output', options.outputFile);
             }
 
             console.log(`Executing: ${this.cliPath} ${args.join(' ')}`);
@@ -158,7 +156,7 @@ class TriageIRMain {
             process.stdout.on('data', (data) => {
                 const output = data.toString();
                 stdout += output;
-                // Send progress updates to renderer
+                // Send progress updates to renderer (verbose output)
                 this.mainWindow.webContents.send('scan-progress', output.trim());
             });
 
@@ -167,11 +165,19 @@ class TriageIRMain {
             });
 
             process.on('close', (code) => {
-                if (code === 0) {
+                if (code === 0 || code === 2) { // Accept exit code 2 as success (warnings)
                     try {
-                        // If output file was specified, read it
-                        if (options.outputFile && fs.existsSync(options.outputFile)) {
-                            const jsonData = JSON.parse(fs.readFileSync(options.outputFile, 'utf8'));
+                        // Read the clean JSON from output file
+                        if (fs.existsSync(tempFile)) {
+                            const jsonData = JSON.parse(fs.readFileSync(tempFile, 'utf8'));
+                            
+                            // Clean up temp file
+                            try {
+                                fs.unlinkSync(tempFile);
+                            } catch (cleanupError) {
+                                console.warn('Failed to cleanup temp file:', cleanupError);
+                            }
+                            
                             resolve({
                                 success: true,
                                 data: jsonData,
@@ -179,14 +185,24 @@ class TriageIRMain {
                                 stderr: stderr
                             });
                         } else {
-                            // Parse stdout as JSON
-                            const jsonData = JSON.parse(stdout);
-                            resolve({
-                                success: true,
-                                data: jsonData,
-                                stdout: stdout,
-                                stderr: stderr
-                            });
+                            // Fallback: try to extract JSON from stdout
+                            const jsonMatch = stdout.match(/\{[\s\S]*\}$/);
+                            if (jsonMatch) {
+                                const jsonData = JSON.parse(jsonMatch[0]);
+                                resolve({
+                                    success: true,
+                                    data: jsonData,
+                                    stdout: stdout,
+                                    stderr: stderr
+                                });
+                            } else {
+                                reject({
+                                    success: false,
+                                    error: 'No JSON output found',
+                                    stdout: stdout,
+                                    stderr: stderr
+                                });
+                            }
                         }
                     } catch (error) {
                         reject({
