@@ -1,5 +1,6 @@
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
+use sha2::Digest;
 
 /// Professional forensic data structures for TriageIR
 /// Designed to match commercial DFIR tool capabilities

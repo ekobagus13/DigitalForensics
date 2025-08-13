@@ -242,7 +242,7 @@ fn extract_referenced_files(data: &[u8]) -> Vec<String> {
     files
 }
 
-fn extract_volume_info(data: &[u8]) -> Vec<VolumeInfo> {
+fn extract_volume_info(_data: &[u8]) -> Vec<VolumeInfo> {
     // Simplified extraction - real implementation would parse volume information section
     vec![
         VolumeInfo {

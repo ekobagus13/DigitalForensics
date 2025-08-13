@@ -204,7 +204,7 @@ fn parse_shimcache_entry(data: &[u8], signature: u32) -> Result<(ShimcacheEntry,
     // Entry format varies by Windows version
     let (path, last_modified, file_size, last_update, execution_flag, entry_size) = match signature {
         0x30 | 0x34 | 0x38 => parse_windows10_entry(data)?, // Windows 10/11
-        0x80 | 0x73 | 0x74 => parse_windows8_entry(data)?,  // Windows 8.1
+        0x80 | 0x73 => parse_windows8_entry(data)?,  // Windows 8.1
         0x72 | 0x6f | 0x74 => parse_windows7_entry(data)?,  // Windows 7
         _ => return Err("Unsupported shimcache format".into()),
     };
@@ -257,7 +257,7 @@ fn parse_windows10_entry(data: &[u8]) -> Result<(String, String, u64, String, bo
     Ok((path, last_modified, file_size, last_update, execution_flag, entry_size))
 }
 
-fn parse_windows8_entry(data: &[u8]) -> Result<(String, String, u64, String, bool, usize), Box<dyn std::error::Error>> {
+fn parse_windows8_entry(_data: &[u8]) -> Result<(String, String, u64, String, bool, usize), Box<dyn std::error::Error>> {
     // Windows 8.1 shimcache entry format (simplified)
     let path = "Windows 8 entry (parsing not fully implemented)".to_string();
     let last_modified = chrono::Utc::now().to_rfc3339();
@@ -269,7 +269,7 @@ fn parse_windows8_entry(data: &[u8]) -> Result<(String, String, u64, String, boo
     Ok((path, last_modified, file_size, last_update, execution_flag, entry_size))
 }
 
-fn parse_windows7_entry(data: &[u8]) -> Result<(String, String, u64, String, bool, usize), Box<dyn std::error::Error>> {
+fn parse_windows7_entry(_data: &[u8]) -> Result<(String, String, u64, String, bool, usize), Box<dyn std::error::Error>> {
     // Windows 7 shimcache entry format (simplified)
     let path = "Windows 7 entry (parsing not fully implemented)".to_string();
     let last_modified = chrono::Utc::now().to_rfc3339();
