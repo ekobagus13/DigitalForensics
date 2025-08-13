@@ -18,7 +18,7 @@ mod forensic_types;
 #[cfg(test)]
 mod integration_tests;
 
-use logger::{Logger, error_handling::{ForensicResult, ForensicError, ErrorKind, handle_error_gracefully}};
+use logger::{Logger, error_handling::{ForensicResult, ForensicError, handle_error_gracefully}};
 use types::{ScanResults, LogEntry};
 
 fn main() {
@@ -213,8 +213,9 @@ fn main() {
     
     // Convert forensic audit entries to log entries
     for audit_entry in &prefetch_logs {
+        let duration_str = audit_entry.duration_ms.map_or("N/A".to_string(), |d| d.to_string());
         let log_entry = LogEntry::new(&audit_entry.level, &format!("[{}] {}: {} ({}ms)", 
-            audit_entry.component, audit_entry.action, audit_entry.details, audit_entry.duration_ms));
+            audit_entry.component, audit_entry.action, audit_entry.details, duration_str));
         scan_results.add_log(log_entry);
     }
     
@@ -246,8 +247,9 @@ fn main() {
     
     // Convert forensic audit entries to log entries
     for audit_entry in &shimcache_logs {
+        let duration_str = audit_entry.duration_ms.map_or("N/A".to_string(), |d| d.to_string());
         let log_entry = LogEntry::new(&audit_entry.level, &format!("[{}] {}: {} ({}ms)", 
-            audit_entry.component, audit_entry.action, audit_entry.details, audit_entry.duration_ms));
+            audit_entry.component, audit_entry.action, audit_entry.details, duration_str));
         scan_results.add_log(log_entry);
     }
     

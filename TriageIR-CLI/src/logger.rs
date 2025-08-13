@@ -553,12 +553,12 @@ mod tests {
         
         // Test access denied scenario
         let access_error = ForensicError::access_denied("Registry key access denied");
-        let handled = handle_error_gracefully(Err(access_error), &logger, "registry_scan");
+        let handled: Option<i32> = handle_error_gracefully(Err(access_error), &logger, "registry_scan");
         assert_eq!(handled, None);
         
         // Test system API error scenario
         let api_error = ForensicError::system_api_error("GetProcessList failed");
-        let handled = handle_error_gracefully(Err(api_error), &logger, "process_enum");
+        let handled: Option<i32> = handle_error_gracefully(Err(api_error), &logger, "process_enum");
         assert_eq!(handled, None);
         
         // Verify appropriate log levels were used
@@ -572,8 +572,6 @@ mod tests {
 
     #[test]
     fn test_verbose_mode_output() {
-        use std::io::{self, Write};
-        
         // Test that verbose mode produces stderr output
         let logger = Logger::new(true);
         
