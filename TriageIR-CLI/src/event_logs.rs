@@ -397,6 +397,22 @@ mod tests {
     }
 
     #[test]
+    fn test_get_application_event_filter() {
+        let filter = get_application_event_filter();
+        
+        // Should contain important application events
+        assert!(filter.contains_key(&1000)); // Application Error
+        assert!(filter.contains_key(&1001)); // Windows Error Reporting
+        assert!(filter.contains_key(&1002)); // Application Hang
+        assert!(filter.contains_key(&1023)); // .NET Runtime Error
+        assert!(filter.contains_key(&11707)); // Installation completed successfully
+        
+        // Should have meaningful descriptions
+        assert_eq!(filter.get(&1000), Some(&"Application Error"));
+        assert_eq!(filter.get(&11707), Some(&"Installation completed successfully"));
+    }
+
+    #[test]
     fn test_filter_events_by_id() {
         let events = vec![
             EventLogEntry::new(4624, "Information".to_string(), "2023-01-01T00:00:00Z".to_string(), "Logon".to_string()),
