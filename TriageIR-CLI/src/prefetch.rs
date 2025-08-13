@@ -317,3 +317,159 @@ pub fn get_recently_executed_programs<'a>(prefetch_files: &'a [PrefetchFile], li
     programs.truncate(limit);
     programs
 }
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::fs;
+    use std::path::Path;
+    use tempfile::TempDir;
+
+    #[test]
+    fn test_collect_prefetch_files_no_directory() {
+        // Test when prefetch directory doesn't exist
+        let (prefetch_files, audit_log) = collect_prefetch_files();
+        
+        // Should handle missing directory gracefully
+        assert!(audit_log.len() > 0);
+        
+        // Check that we have appropriate log entries
+        let has_warn_or_info = audit_log.iter().any(|log| 
+            log.level == "WARN" || log.level == "INFO"
+        );
+        assert!(has_warn_or_info);
+    }
+
+    #[test]
+    fn test_prefetch_statistics() {
+        let mut prefetch_files = Vec::new();
+        
+        // Create test prefetch files
+        prefetch_files.push(PrefetchFile {
+            filename: "TEST1-12345678.pf".to_string(),
+            executable_name: "test1.exe".to_string(),
+            run_count: 5,
+            last_run_time: "2023-01-01T00:00:00Z".to_string(),
+            creation_time: "2023-01-01T00:00:00Z".to_string(),
+            file_size: 1024,
+            hash: "abcd1234".to_string(),
+            version: 30,
+            referenced_files: vec!["C:\\test1.exe".to_string()],
+            volumes: vec![],
+        });
+        
+        prefetch_files.push(PrefetchFile {
+            filename: "TEST2-87654321.pf".to_string(),
+            executable_name: "test2.exe".to_string(),
+            run_count: 3,
+            last_run_time: "2023-01-02T00:00:00Z".to_string(),
+            creation_time: "2023-01-02T00:00:00Z".to_string(),
+            file_size: 2048,
+            hash: "efgh5678".to_string(),
+            version: 30,
+            referenced_files: vec!["C:\\test2.exe".to_string()],
+            volumes: vec![],
+        });
+        
+        let stats = get_prefetch_statistics(&prefetch_files);
+        
+        assert_eq!(stats.get("total_files"), Some(&2));
+        assert_eq!(stats.get("total_executions"), Some(&8)); // 5 + 3
+        assert_eq!(stats.get("unique_executables"), Some(&2));
+        assert_eq!(stats.get("exe_files"), Some(&2));
+    }
+
+    #[test]
+    fn test_find_prefetch_by_executable() {
+        let mut prefetch_files = Vec::new();
+        
+        prefetch_files.push(PrefetchFile {
+            filename: "NOTEPAD-12345678.pf".to_string(),
+            executable_name: "notepad.exe".to_string(),
+            run_count: 10,
+            last_run_time: "2023-01-01T00:00:00Z".to_string(),
+            creation_time: "2023-01-01T00:00:00Z".to_string(),
+            file_size: 1024,
+            hash: "abcd1234".to_string(),
+            version: 30,
+            referenced_files: vec![],
+            volumes: vec![],
+        });
+        
+        prefetch_files.push(PrefetchFile {
+            filename: "CALC-87654321.pf".to_string(),
+            executable_name: "calc.exe".to_string(),
+            run_count: 5,
+            last_run_time: "2023-01-02T00:00:00Z".to_string(),
+            creation_time: "2023-01-02T00:00:00Z".to_string(),
+            file_size: 2048,
+            hash: "efgh5678".to_string(),
+            version: 30,
+            referenced_files: vec![],
+            volumes: vec![],
+        });
+        
+        let results = find_prefetch_by_executable(&prefetch_files, "notepad");
+        assert_eq!(results.len(), 1);
+        assert_eq!(results[0].executable_name, "notepad.exe");
+        
+        let results = find_prefetch_by_executable(&prefetch_files, "nonexistent");
+        assert_eq!(results.len(), 0);
+    }
+
+    #[test]
+    fn test_get_most_executed_programs() {
+        let mut prefetch_files = Vec::new();
+        
+        prefetch_files.push(PrefetchFile {
+            filename: "HIGH-12345678.pf".to_string(),
+            executable_name: "high.exe".to_string(),
+            run_count: 100,
+            last_run_time: "2023-01-01T00:00:00Z".to_string(),
+            creation_time: "2023-01-01T00:00:00Z".to_string(),
+            file_size: 1024,
+            hash: "abcd1234".to_string(),
+            version: 30,
+            referenced_files: vec![],
+            volumes: vec![],
+        });
+        
+        prefetch_files.push(PrefetchFile {
+            filename: "LOW-87654321.pf".to_string(),
+            executable_name: "low.exe".to_string(),
+            run_count: 5,
+            last_run_time: "2023-01-02T00:00:00Z".to_string(),
+            creation_time: "2023-01-02T00:00:00Z".to_string(),
+            file_size: 2048,
+            hash: "efgh5678".to_string(),
+            version: 30,
+            referenced_files: vec![],
+            volumes: vec![],
+        });
+        
+        let results = get_most_executed_programs(&prefetch_files, 1);
+        assert_eq!(results.len(), 1);
+        assert_eq!(results[0].0.executable_name, "high.exe");
+        assert_eq!(results[0].1, 100);
+    }
+
+    #[test]
+    fn test_extract_run_count() {
+        // Test with minimal data
+        let data = vec![0u8; 16];
+        let count = extract_run_count(&data);
+        assert_eq!(count, 0); // Should be 0 for empty data
+        
+        // Test with insufficient data
+        let small_data = vec![0u8; 8];
+        let count = extract_run_count(&small_data);
+        assert_eq!(count, 1); // Should default to 1
+    }
+
+    #[test]
+    fn test_extract_referenced_files() {
+        let data = b"test.exe\0kernel32.dll\0";
+        let files = extract_referenced_files(data);
+        assert!(!files.is_empty());
+        // Should contain at least one file reference
+    }
+}
