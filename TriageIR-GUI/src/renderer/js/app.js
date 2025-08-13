@@ -332,6 +332,8 @@ class TriageIRApp {
     populateResults() {
         if (!this.currentScanData) return;
         
+        console.log('Populating results with data:', this.currentScanData);
+        
         // Populate summary cards
         this.populateSummaryCards();
         
@@ -358,22 +360,28 @@ class TriageIRApp {
         const summaryCards = document.getElementById('summaryCards');
         const data = this.currentScanData;
         
+        // Handle both old and new data structures
+        const processes = data.artifacts?.running_processes || [];
+        const connections = data.artifacts?.network_connections || [];
+        const persistence = data.artifacts?.persistence_mechanisms || [];
+        const events = data.artifacts?.event_logs || [];
+        
         summaryCards.innerHTML = `
             <div class="summary-card">
                 <h3>Processes</h3>
-                <div class="value">${data.artifacts?.running_processes?.length || 0}</div>
+                <div class="value">${processes.length}</div>
             </div>
             <div class="summary-card">
                 <h3>Network Connections</h3>
-                <div class="value">${data.artifacts?.network_connections?.length || 0}</div>
+                <div class="value">${connections.length}</div>
             </div>
             <div class="summary-card">
                 <h3>Persistence Items</h3>
-                <div class="value">${data.artifacts?.persistence_mechanisms?.length || 0}</div>
+                <div class="value">${persistence.length}</div>
             </div>
             <div class="summary-card">
                 <h3>Event Logs</h3>
-                <div class="value">${(data.artifacts?.event_logs?.security?.length || 0) + (data.artifacts?.event_logs?.system?.length || 0)}</div>
+                <div class="value">${events.length}</div>
             </div>
         `;
     }
@@ -382,14 +390,21 @@ class TriageIRApp {
         const overviewContent = document.getElementById('overviewContent');
         const data = this.currentScanData;
         
+        // Handle the actual CLI data structure
+        const metadata = data.scan_metadata || {};
+        const systemInfo = data.artifacts?.system_info || {};
+        
         overviewContent.innerHTML = `
             <div class="overview-info">
                 <h4>Scan Information</h4>
-                <p><strong>Scan ID:</strong> ${data.scan_metadata?.scan_id || 'Unknown'}</p>
-                <p><strong>Hostname:</strong> ${data.scan_metadata?.hostname || 'Unknown'}</p>
-                <p><strong>OS Version:</strong> ${data.scan_metadata?.os_version || 'Unknown'}</p>
-                <p><strong>Scan Duration:</strong> ${data.scan_metadata?.scan_duration_ms || 0}ms</p>
-                <p><strong>CLI Version:</strong> ${data.scan_metadata?.cli_version || 'Unknown'}</p>
+                <p><strong>Hostname:</strong> ${metadata.hostname || systemInfo.hostname || 'Unknown'}</p>
+                <p><strong>Current User:</strong> ${systemInfo.current_user || 'Unknown'}</p>
+                <p><strong>OS Version:</strong> ${systemInfo.os_version || 'Unknown'}</p>
+                <p><strong>Architecture:</strong> ${systemInfo.architecture || 'Unknown'}</p>
+                <p><strong>Scan Duration:</strong> ${metadata.scan_duration_seconds ? (metadata.scan_duration_seconds * 1000).toFixed(2) + 'ms' : 'Unknown'}</p>
+                <p><strong>CLI Version:</strong> ${metadata.version || 'Unknown'}</p>
+                <p><strong>Timestamp:</strong> ${metadata.timestamp || 'Unknown'}</p>
+                <p><strong>Total Artifacts:</strong> ${metadata.total_artifacts || 'Unknown'}</p>
             </div>
         `;
     }
@@ -406,17 +421,13 @@ class TriageIRApp {
         systemContent.innerHTML = `
             <div class="system-info">
                 <h4>System Details</h4>
-                <p><strong>Uptime:</strong> ${systemInfo.uptime_secs || 0} seconds</p>
-                <p><strong>Logged Users:</strong> ${systemInfo.logged_on_users?.length || 0}</p>
-                
-                ${systemInfo.logged_on_users?.length > 0 ? `
-                    <h4>Logged On Users</h4>
-                    <ul>
-                        ${systemInfo.logged_on_users.map(user => 
-                            `<li>${user.username || 'Unknown'} (${user.domain || 'Unknown'})</li>`
-                        ).join('')}
-                    </ul>
-                ` : ''}
+                <p><strong>Hostname:</strong> ${systemInfo.hostname || 'Unknown'}</p>
+                <p><strong>Current User:</strong> ${systemInfo.current_user || 'Unknown'}</p>
+                <p><strong>OS Name:</strong> ${systemInfo.os_name || 'Unknown'}</p>
+                <p><strong>OS Version:</strong> ${systemInfo.os_version || 'Unknown'}</p>
+                <p><strong>Architecture:</strong> ${systemInfo.architecture || 'Unknown'}</p>
+                <p><strong>Uptime:</strong> ${systemInfo.uptime_hours ? systemInfo.uptime_hours.toFixed(1) + ' hours' : 'Unknown'}</p>
+                <p><strong>Last Boot:</strong> ${systemInfo.last_boot_time || 'Unknown'}</p>
             </div>
         `;
     }
@@ -430,7 +441,7 @@ class TriageIRApp {
                 <td>${proc.pid || 'N/A'}</td>
                 <td>${proc.name || 'N/A'}</td>
                 <td>${proc.user || 'N/A'}</td>
-                <td>${proc.memory_mb || 'N/A'}</td>
+                <td>${proc.memory_usage_mb ? proc.memory_usage_mb.toFixed(1) : 'N/A'}</td>
                 <td title="${proc.command_line || ''}">${(proc.command_line || '').substring(0, 50)}${(proc.command_line || '').length > 50 ? '...' : ''}</td>
             </tr>
         `).join('');
@@ -440,22 +451,17 @@ class TriageIRApp {
         const tableBody = document.getElementById('networkTableBody');
         const connections = this.currentScanData.artifacts?.network_connections || [];
         
-        tableBody.innerHTML = connections.slice(0, 100).map(conn => {
-            const localParts = (conn.local_address || '').split(':');
-            const remoteParts = (conn.remote_address || '').split(':');
-            
-            return `
-                <tr>
-                    <td>${conn.protocol || 'N/A'}</td>
-                    <td>${localParts[0] || 'N/A'}</td>
-                    <td>${localParts[1] || 'N/A'}</td>
-                    <td>${remoteParts[0] || 'N/A'}</td>
-                    <td>${remoteParts[1] || 'N/A'}</td>
-                    <td>${conn.state || 'N/A'}</td>
-                    <td>${conn.owning_pid || 'N/A'}</td>
-                </tr>
-            `;
-        }).join('');
+        tableBody.innerHTML = connections.slice(0, 100).map(conn => `
+            <tr>
+                <td>${conn.protocol || 'N/A'}</td>
+                <td>${conn.local_address || 'N/A'}</td>
+                <td>${conn.local_port || 'N/A'}</td>
+                <td>${conn.remote_address || 'N/A'}</td>
+                <td>${conn.remote_port || 'N/A'}</td>
+                <td>${conn.state || 'N/A'}</td>
+                <td>${conn.pid || conn.process_name || 'N/A'}</td>
+            </tr>
+        `).join('');
     }
 
     populatePersistenceTable() {
@@ -466,22 +472,20 @@ class TriageIRApp {
             <tr>
                 <td>${item.type || 'N/A'}</td>
                 <td>${item.name || 'N/A'}</td>
-                <td>${item.source || 'N/A'}</td>
-                <td title="${item.command || ''}">${(item.command || '').substring(0, 50)}${(item.command || '').length > 50 ? '...' : ''}</td>
-                <td>${item.suspicious ? '⚠️ Yes' : '✅ No'}</td>
+                <td>${item.location || 'N/A'}</td>
+                <td title="${item.value || ''}">${(item.value || '').substring(0, 50)}${(item.value || '').length > 50 ? '...' : ''}</td>
+                <td>${item.is_suspicious ? '⚠️ Yes' : '✅ No'}</td>
             </tr>
         `).join('');
     }
 
     populateEventsTable() {
         const tableBody = document.getElementById('eventsTableBody');
-        const securityEvents = this.currentScanData.artifacts?.event_logs?.security || [];
-        const systemEvents = this.currentScanData.artifacts?.event_logs?.system || [];
-        const allEvents = [...securityEvents.map(e => ({...e, log: 'Security'})), ...systemEvents.map(e => ({...e, log: 'System'}))];
+        const events = this.currentScanData.artifacts?.event_logs || [];
         
-        tableBody.innerHTML = allEvents.slice(0, 100).map(event => `
+        tableBody.innerHTML = events.slice(0, 100).map(event => `
             <tr>
-                <td>${event.log || 'N/A'}</td>
+                <td>${event.log_name || 'N/A'}</td>
                 <td>${event.event_id || 'N/A'}</td>
                 <td>${event.level || 'N/A'}</td>
                 <td>${event.source || 'N/A'}</td>
