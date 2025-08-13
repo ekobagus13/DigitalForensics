@@ -101,6 +101,7 @@ impl Artifacts {
         self.persistence_mechanisms.len() +
         self.event_logs.security.len() +
         self.event_logs.system.len() +
+        self.event_logs.application.len() +
         self.system_info.logged_on_users.len()
     }
 }
@@ -301,12 +302,14 @@ pub struct EventLogs {
     pub security: Vec<EventLogEntry>,
     /// System event log entries
     pub system: Vec<EventLogEntry>,
+    /// Application event log entries
+    pub application: Vec<EventLogEntry>,
 }
 
 impl EventLogs {
     /// Get total count of all event log entries
     pub fn total_entries(&self) -> usize {
-        self.security.len() + self.system.len()
+        self.security.len() + self.system.len() + self.application.len()
     }
 }
 

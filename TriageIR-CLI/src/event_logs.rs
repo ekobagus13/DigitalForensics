@@ -40,6 +40,18 @@ pub fn collect_event_logs() -> (EventLogs, Vec<LogEntry>) {
         }
     }
     
+    // Collect Application event log entries
+    match collect_application_events() {
+        Ok(application_events) => {
+            let count = application_events.len();
+            event_logs.application = application_events;
+            logs.push(LogEntry::info(&format!("Collected {} Application log entries", count)));
+        }
+        Err(e) => {
+            logs.push(LogEntry::warn(&format!("Failed to collect Application log entries: {}", e)));
+        }
+    }
+    
     let total_events = event_logs.total_entries();
     logs.push(LogEntry::info(&format!("Total event log entries collected: {}", total_events)));
     logs.push(LogEntry::info("Event log collection completed"));
@@ -244,7 +256,6 @@ fn get_system_event_filter() -> HashMap<u32, &'static str> {
     filter.insert(1002, "Application Hang");
     
     // Hardware events
-    filter.insert(6008, "Unexpected shutdown");
     filter.insert(41, "The system has rebooted without cleanly shutting down first");
     
     // Driver events
@@ -254,14 +265,51 @@ fn get_system_event_filter() -> HashMap<u32, &'static str> {
     filter
 }
 
+/// Get filter for Application event log (important event IDs)
+fn get_application_event_filter() -> HashMap<u32, &'static str> {
+    let mut filter = HashMap::new();
+    
+    // Application errors and crashes
+    filter.insert(1000, "Application Error");
+    filter.insert(1001, "Windows Error Reporting");
+    filter.insert(1002, "Application Hang");
+    filter.insert(1026, "Application popup");
+    
+    // .NET Framework events
+    filter.insert(1023, ".NET Runtime Error");
+    filter.insert(1026, ".NET Runtime");
+    
+    // Windows Installer events
+    filter.insert(1033, "Windows Installer reconfigured a product");
+    filter.insert(1034, "Windows Installer removed a product");
+    filter.insert(11707, "Installation completed successfully");
+    filter.insert(11708, "Installation failed");
+    filter.insert(11724, "Package removal completed successfully");
+    
+    // Application installation/uninstallation
+    filter.insert(2, "The application-specific permission settings do not grant Local Activation permission");
+    filter.insert(10016, "The application-specific permission settings do not grant Local Activation permission");
+    
+    // Security-related application events
+    filter.insert(4625, "An account failed to log on");
+    filter.insert(4648, "A logon was attempted using explicit credentials");
+    
+    filter
+}
+
 /// Fallback implementation for non-Windows platforms
 #[cfg(not(windows))]
-fn collect_security_events() -> Result<Vec<EventLogEntry>, String> {
+fn collect_security_events() -> std::result::Result<Vec<EventLogEntry>, String> {
     Ok(Vec::new()) // Return empty vector on non-Windows platforms
 }
 
 #[cfg(not(windows))]
-fn collect_system_events() -> Result<Vec<EventLogEntry>, String> {
+fn collect_system_events() -> std::result::Result<Vec<EventLogEntry>, String> {
+    Ok(Vec::new()) // Return empty vector on non-Windows platforms
+}
+
+#[cfg(not(windows))]
+fn collect_application_events() -> std::result::Result<Vec<EventLogEntry>, String> {
     Ok(Vec::new()) // Return empty vector on non-Windows platforms
 }
 
