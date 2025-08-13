@@ -364,7 +364,12 @@ class TriageIRApp {
         const processes = data.artifacts?.running_processes || [];
         const connections = data.artifacts?.network_connections || [];
         const persistence = data.artifacts?.persistence_mechanisms || [];
-        const events = data.artifacts?.event_logs || [];
+        
+        // Handle event_logs as object with application, security, system arrays
+        const eventLogs = data.artifacts?.event_logs || {};
+        const totalEvents = (eventLogs.application || []).length + 
+                           (eventLogs.security || []).length + 
+                           (eventLogs.system || []).length;
         
         summaryCards.innerHTML = `
             <div class="summary-card">
@@ -381,7 +386,7 @@ class TriageIRApp {
             </div>
             <div class="summary-card">
                 <h3>Event Logs</h3>
-                <div class="value">${events.length}</div>
+                <div class="value">${totalEvents}</div>
             </div>
         `;
     }
@@ -481,9 +486,16 @@ class TriageIRApp {
 
     populateEventsTable() {
         const tableBody = document.getElementById('eventsTableBody');
-        const events = this.currentScanData.artifacts?.event_logs || [];
+        const eventLogs = this.currentScanData.artifacts?.event_logs || {};
         
-        tableBody.innerHTML = events.slice(0, 100).map(event => `
+        // Combine all event log categories into a single array
+        const allEvents = [
+            ...(eventLogs.application || []).map(event => ({ ...event, log_name: 'Application' })),
+            ...(eventLogs.security || []).map(event => ({ ...event, log_name: 'Security' })),
+            ...(eventLogs.system || []).map(event => ({ ...event, log_name: 'System' }))
+        ];
+        
+        tableBody.innerHTML = allEvents.slice(0, 100).map(event => `
             <tr>
                 <td>${event.log_name || 'N/A'}</td>
                 <td>${event.event_id || 'N/A'}</td>

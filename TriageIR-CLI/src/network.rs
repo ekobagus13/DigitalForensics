@@ -17,8 +17,16 @@ pub fn collect_network_connections() -> (Vec<NetworkConnection>, Vec<LogEntry>) 
     
     let mut connections = Vec::new();
     
+    // Get process information for PID to name mapping
+    let mut sys = System::new_all();
+    sys.refresh_processes();
+    let process_map: HashMap<u32, String> = sys.processes()
+        .iter()
+        .map(|(pid, process)| (pid.as_u32(), process.name().to_string()))
+        .collect();
+    
     // Collect TCP connections
-    match collect_tcp_connections() {
+    match collect_tcp_connections(&process_map) {
         Ok(tcp_conns) => {
             let tcp_count = tcp_conns.len();
             connections.extend(tcp_conns);
@@ -30,7 +38,7 @@ pub fn collect_network_connections() -> (Vec<NetworkConnection>, Vec<LogEntry>) 
     }
     
     // Collect UDP connections
-    match collect_udp_connections() {
+    match collect_udp_connections(&process_map) {
         Ok(udp_conns) => {
             let udp_count = udp_conns.len();
             connections.extend(udp_conns);
@@ -58,7 +66,7 @@ pub fn collect_network_connections() -> (Vec<NetworkConnection>, Vec<LogEntry>) 
 
 /// Collect TCP connections using Windows API
 #[cfg(windows)]
-fn collect_tcp_connections() -> std::result::Result<Vec<NetworkConnection>, String> {
+fn collect_tcp_connections(process_map: &HashMap<u32, String>) -> std::result::Result<Vec<NetworkConnection>, String> {
     let mut connections = Vec::new();
     
     unsafe {
@@ -97,27 +105,46 @@ fn collect_tcp_connections() -> std::result::Result<Vec<NetworkConnection>, Stri
         let table = buffer.as_ptr() as *const MIB_TCPTABLE_OWNER_PID;
         let num_entries = (*table).dwNumEntries;
         
+        // Check if we have enough buffer space for the structure
+        if size < std::mem::size_of::<MIB_TCPTABLE_OWNER_PID>() as u32 {
+            return Err("Buffer too small for TCP table".to_string());
+        }
+        
+        // Calculate the size needed for the flexible array member
+        let entry_size = std::mem::size_of::<MIB_TCPROW_OWNER_PID>();
+        let base_size = std::mem::size_of::<u32>(); // Just the dwNumEntries field
+        let required_size = base_size + (num_entries as usize * entry_size);
+        
+        if (size as usize) < required_size {
+            return Err("Buffer too small for all TCP entries".to_string());
+        }
+        
+        // Access entries using pointer arithmetic since table is a flexible array
+        let entries_ptr = (table as *const u8).add(base_size) as *const MIB_TCPROW_OWNER_PID;
+        
         for i in 0..num_entries {
-            let entry = &(*table).table[i as usize];
+            let entry = &*entries_ptr.add(i as usize);
             
-            let local_addr = format!("{}:{}", 
-                format_ip_address(entry.dwLocalAddr),
-                u16::from_be(entry.dwLocalPort as u16)
-            );
+            let local_addr = format_ip_address(entry.dwLocalAddr);
+            let local_port = u16::from_be(entry.dwLocalPort as u16);
             
-            let remote_addr = format!("{}:{}", 
-                format_ip_address(entry.dwRemoteAddr),
-                u16::from_be(entry.dwRemotePort as u16)
-            );
+            let remote_addr = format_ip_address(entry.dwRemoteAddr);
+            let remote_port = u16::from_be(entry.dwRemotePort as u16);
             
             let state = format_tcp_state(entry.dwState);
+            let process_name = process_map.get(&entry.dwOwningPid)
+                .cloned()
+                .unwrap_or_else(|| "Unknown".to_string());
             
-            connections.push(NetworkConnection::new(
+            connections.push(NetworkConnection::new_with_ports_and_process(
                 "TCP".to_string(),
                 local_addr,
+                local_port,
                 remote_addr,
+                remote_port,
                 state,
                 entry.dwOwningPid,
+                process_name,
             ));
         }
     }
@@ -127,7 +154,7 @@ fn collect_tcp_connections() -> std::result::Result<Vec<NetworkConnection>, Stri
 
 /// Collect UDP connections using Windows API
 #[cfg(windows)]
-fn collect_udp_connections() -> std::result::Result<Vec<NetworkConnection>, String> {
+fn collect_udp_connections(process_map: &HashMap<u32, String>) -> std::result::Result<Vec<NetworkConnection>, String> {
     let mut connections = Vec::new();
     
     unsafe {
@@ -166,20 +193,41 @@ fn collect_udp_connections() -> std::result::Result<Vec<NetworkConnection>, Stri
         let table = buffer.as_ptr() as *const MIB_UDPTABLE_OWNER_PID;
         let num_entries = (*table).dwNumEntries;
         
+        // Check if we have enough buffer space for the structure
+        if size < std::mem::size_of::<MIB_UDPTABLE_OWNER_PID>() as u32 {
+            return Err("Buffer too small for UDP table".to_string());
+        }
+        
+        // Calculate the size needed for the flexible array member
+        let entry_size = std::mem::size_of::<MIB_UDPROW_OWNER_PID>();
+        let base_size = std::mem::size_of::<u32>(); // Just the dwNumEntries field
+        let required_size = base_size + (num_entries as usize * entry_size);
+        
+        if (size as usize) < required_size {
+            return Err("Buffer too small for all UDP entries".to_string());
+        }
+        
+        // Access entries using pointer arithmetic since table is a flexible array
+        let entries_ptr = (table as *const u8).add(base_size) as *const MIB_UDPROW_OWNER_PID;
+        
         for i in 0..num_entries {
-            let entry = &(*table).table[i as usize];
+            let entry = &*entries_ptr.add(i as usize);
             
-            let local_addr = format!("{}:{}", 
-                format_ip_address(entry.dwLocalAddr),
-                u16::from_be(entry.dwLocalPort as u16)
-            );
+            let local_addr = format_ip_address(entry.dwLocalAddr);
+            let local_port = u16::from_be(entry.dwLocalPort as u16);
+            let process_name = process_map.get(&entry.dwOwningPid)
+                .cloned()
+                .unwrap_or_else(|| "Unknown".to_string());
             
-            connections.push(NetworkConnection::new(
+            connections.push(NetworkConnection::new_with_ports_and_process(
                 "UDP".to_string(),
                 local_addr,
-                "*:*".to_string(), // UDP doesn't have remote connections in the same way
+                local_port,
+                "*".to_string(), // UDP doesn't have remote connections in the same way
+                0,
                 "LISTENING".to_string(),
                 entry.dwOwningPid,
+                process_name,
             ));
         }
     }
@@ -189,13 +237,13 @@ fn collect_udp_connections() -> std::result::Result<Vec<NetworkConnection>, Stri
 
 /// Fallback implementation for non-Windows platforms or when Windows API fails
 #[cfg(not(windows))]
-fn collect_tcp_connections() -> std::result::Result<Vec<NetworkConnection>, String> {
+fn collect_tcp_connections(_process_map: &HashMap<u32, String>) -> std::result::Result<Vec<NetworkConnection>, String> {
     // Fallback implementation using sysinfo
     collect_connections_fallback("TCP")
 }
 
 #[cfg(not(windows))]
-fn collect_udp_connections() -> std::result::Result<Vec<NetworkConnection>, String> {
+fn collect_udp_connections(_process_map: &HashMap<u32, String>) -> std::result::Result<Vec<NetworkConnection>, String> {
     // Fallback implementation using sysinfo
     collect_connections_fallback("UDP")
 }

@@ -186,6 +186,10 @@ pub struct Process {
     pub executable_path: String,
     /// SHA-256 hash of executable
     pub sha256_hash: String,
+    /// User account running the process
+    pub user: String,
+    /// Memory usage in MB
+    pub memory_usage_mb: f64,
     /// Loaded DLLs and modules
     pub loaded_modules: Vec<ProcessModule>,
 }
@@ -199,6 +203,22 @@ impl Process {
             command_line,
             executable_path,
             sha256_hash: String::new(), // Will be calculated separately
+            user: String::new(), // Will be populated separately
+            memory_usage_mb: 0.0, // Will be populated separately
+            loaded_modules: Vec::new(), // Will be populated separately
+        }
+    }
+    
+    pub fn new_with_user_memory(pid: u32, parent_pid: u32, name: String, command_line: String, executable_path: String, user: String, memory_usage_mb: f64) -> Self {
+        Process {
+            pid,
+            parent_pid,
+            name,
+            command_line,
+            executable_path,
+            sha256_hash: String::new(), // Will be calculated separately
+            user,
+            memory_usage_mb,
             loaded_modules: Vec::new(), // Will be populated separately
         }
     }
@@ -221,22 +241,48 @@ pub struct NetworkConnection {
     pub protocol: String,
     /// Local address and port
     pub local_address: String,
+    /// Local port number
+    pub local_port: u16,
     /// Remote address and port
     pub remote_address: String,
+    /// Remote port number
+    pub remote_port: u16,
     /// Connection state (for TCP)
     pub state: String,
     /// Process ID that owns this connection
     pub owning_pid: u32,
+    /// Process name that owns this connection
+    pub process_name: String,
 }
 
 impl NetworkConnection {
     pub fn new(protocol: String, local_address: String, remote_address: String, state: String, owning_pid: u32) -> Self {
+        // Extract ports from addresses if they contain them
+        let (local_addr, local_port) = extract_address_and_port(&local_address);
+        let (remote_addr, remote_port) = extract_address_and_port(&remote_address);
+        
+        NetworkConnection {
+            protocol,
+            local_address: local_addr,
+            local_port,
+            remote_address: remote_addr,
+            remote_port,
+            state,
+            owning_pid,
+            process_name: String::new(), // Will be populated separately
+        }
+    }
+    
+    pub fn new_with_ports_and_process(protocol: String, local_address: String, local_port: u16, remote_address: String, remote_port: u16, state: String, owning_pid: u32, process_name: String) -> Self {
         NetworkConnection {
             protocol,
             local_address,
+            local_port,
             remote_address,
+            remote_port,
             state,
             owning_pid,
+            process_name,
         }
     }
     
@@ -245,7 +291,19 @@ impl NetworkConnection {
         !self.remote_address.starts_with("127.0.0.1") &&
         !self.remote_address.starts_with("::1") &&
         !self.remote_address.starts_with("0.0.0.0") &&
-        self.remote_address != "*:*"
+        self.remote_address != "*"
+    }
+}
+
+/// Extract IP address and port from a string like "192.168.1.1:8080"
+fn extract_address_and_port(addr_port: &str) -> (String, u16) {
+    if let Some(last_colon) = addr_port.rfind(':') {
+        let addr = addr_port[..last_colon].to_string();
+        let port_str = &addr_port[last_colon + 1..];
+        let port = port_str.parse::<u16>().unwrap_or(0);
+        (addr, port)
+    } else {
+        (addr_port.to_string(), 0)
     }
 }
 
@@ -261,6 +319,12 @@ pub struct PersistenceMechanism {
     pub command: String,
     /// Source location (registry key, task path, etc.)
     pub source: String,
+    /// Location within the source (registry value, file path, etc.)
+    pub location: String,
+    /// Value of the persistence mechanism
+    pub value: String,
+    /// Whether this mechanism is suspicious
+    pub is_suspicious: bool,
 }
 
 impl PersistenceMechanism {
@@ -270,6 +334,21 @@ impl PersistenceMechanism {
             name,
             command,
             source,
+            location: String::new(), // Will be populated separately
+            value: String::new(), // Will be populated separately
+            is_suspicious: false, // Will be analyzed separately
+        }
+    }
+    
+    pub fn new_with_location_value(mechanism_type: String, name: String, command: String, source: String, location: String, value: String, is_suspicious: bool) -> Self {
+        PersistenceMechanism {
+            mechanism_type,
+            name,
+            command,
+            source,
+            location,
+            value,
+            is_suspicious,
         }
     }
 }
@@ -324,6 +403,8 @@ pub struct EventLogEntry {
     pub timestamp: String,
     /// Event message/description
     pub message: String,
+    /// Event log source (Security, System, Application)
+    pub source: String,
 }
 
 impl EventLogEntry {
@@ -333,6 +414,17 @@ impl EventLogEntry {
             level,
             timestamp,
             message,
+            source: "Unknown".to_string(),
+        }
+    }
+    
+    pub fn new_with_source(event_id: u32, level: String, timestamp: String, message: String, source: String) -> Self {
+        EventLogEntry {
+            event_id,
+            level,
+            timestamp,
+            message,
+            source,
         }
     }
 }
@@ -514,8 +606,8 @@ mod tests {
         let mut event_logs = EventLogs::default();
         assert_eq!(event_logs.total_entries(), 0);
         
-        event_logs.security.push(EventLogEntry::new(4624, "Information".to_string(), "2023-01-01T00:00:00Z".to_string(), "Logon".to_string()));
-        event_logs.system.push(EventLogEntry::new(1001, "Information".to_string(), "2023-01-01T00:00:00Z".to_string(), "System".to_string()));
+        event_logs.security.push(EventLogEntry::new_with_source(4624, "Information".to_string(), "2023-01-01T00:00:00Z".to_string(), "Logon".to_string(), "Security".to_string()));
+        event_logs.system.push(EventLogEntry::new_with_source(1001, "Information".to_string(), "2023-01-01T00:00:00Z".to_string(), "System".to_string(), "System".to_string()));
         
         assert_eq!(event_logs.total_entries(), 2);
     }

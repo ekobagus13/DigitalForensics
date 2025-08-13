@@ -81,12 +81,22 @@ fn collect_single_process(pid: Pid, process: &sysinfo::Process) -> std::result::
         .map(|path| path.to_string_lossy().to_string())
         .unwrap_or_else(|| "N/A".to_string());
     
-    Ok(Process::new(
+    // Get user information (if available)
+    let user = process.user_id()
+        .map(|uid| uid.to_string())
+        .unwrap_or_else(|| "N/A".to_string());
+    
+    // Get memory usage in MB
+    let memory_usage_mb = process.memory() as f64 / 1024.0 / 1024.0;
+    
+    Ok(Process::new_with_user_memory(
         pid_u32,
         parent_pid,
         name,
         command_line,
         executable_path,
+        user,
+        memory_usage_mb,
     ))
 }
 
