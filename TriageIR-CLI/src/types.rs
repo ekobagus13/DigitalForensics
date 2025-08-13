@@ -125,6 +125,21 @@ pub struct LoggedOnUser {
     pub logon_time: String,
 }
 
+/// Information about a loaded module/DLL in a process
+#[derive(Serialize, Deserialize, Debug, Clone)]
+pub struct ProcessModule {
+    /// Module name (e.g., "kernel32.dll")
+    pub name: String,
+    /// Full path to the module file
+    pub file_path: String,
+    /// Base address where module is loaded
+    pub base_address: String,
+    /// Size of the module in memory
+    pub size: u32,
+    /// Module version information (if available)
+    pub version: String,
+}
+
 impl LoggedOnUser {
     pub fn new(username: String, domain: String, logon_time: String) -> Self {
         LoggedOnUser {
@@ -132,6 +147,26 @@ impl LoggedOnUser {
             domain,
             logon_time,
         }
+    }
+}
+
+impl ProcessModule {
+    pub fn new(name: String, file_path: String, base_address: String, size: u32, version: String) -> Self {
+        ProcessModule {
+            name,
+            file_path,
+            base_address,
+            size,
+            version,
+        }
+    }
+    
+    /// Check if this is a system module (located in Windows system directories)
+    pub fn is_system_module(&self) -> bool {
+        let path_lower = self.file_path.to_lowercase();
+        path_lower.contains("\\windows\\system32\\") || 
+        path_lower.contains("\\windows\\syswow64\\") ||
+        path_lower.contains("\\windows\\winsxs\\")
     }
 }
 
@@ -150,6 +185,8 @@ pub struct Process {
     pub executable_path: String,
     /// SHA-256 hash of executable
     pub sha256_hash: String,
+    /// Loaded DLLs and modules
+    pub loaded_modules: Vec<ProcessModule>,
 }
 
 impl Process {
@@ -161,12 +198,18 @@ impl Process {
             command_line,
             executable_path,
             sha256_hash: String::new(), // Will be calculated separately
+            loaded_modules: Vec::new(), // Will be populated separately
         }
     }
     
     /// Check if this process has a valid executable path
     pub fn has_executable_path(&self) -> bool {
         !self.executable_path.is_empty() && self.executable_path != "N/A"
+    }
+    
+    /// Get count of loaded modules
+    pub fn module_count(&self) -> usize {
+        self.loaded_modules.len()
     }
 }
 
@@ -415,6 +458,7 @@ mod tests {
         assert_eq!(process.parent_pid, 5678);
         assert_eq!(process.name, "test.exe");
         assert!(process.has_executable_path());
+        assert_eq!(process.module_count(), 0);
     }
 
     #[test]

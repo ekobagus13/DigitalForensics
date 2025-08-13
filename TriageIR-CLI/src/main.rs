@@ -4,6 +4,14 @@ use std::fs;
 use sysinfo::System;
 use std::collections::HashMap;
 
+mod types;
+mod processes;
+mod system_info;
+mod network;
+mod persistence;
+mod event_logs;
+mod logger;
+
 fn main() {
     let matches = Command::new("triageir-cli")
         .version("0.1.0")
@@ -44,14 +52,52 @@ fn main() {
     // Collect real system information
     let system_info = collect_system_info(&sys, &hostname, &username);
     
-    // Collect real running processes
-    let processes = collect_processes(&sys);
+    // Collect real running processes with enhanced DLL enumeration
+    let (processes_data, process_logs) = processes::collect_processes();
+    let processes = processes_data.into_iter().map(|p| {
+        json!({
+            "pid": p.pid,
+            "parent_pid": p.parent_pid,
+            "name": p.name,
+            "command_line": p.command_line,
+            "executable_path": p.executable_path,
+            "sha256_hash": p.sha256_hash,
+            "loaded_modules": p.loaded_modules.into_iter().map(|m| {
+                json!({
+                    "name": m.name,
+                    "file_path": m.file_path,
+                    "base_address": m.base_address,
+                    "size": m.size,
+                    "version": m.version,
+                    "is_system_module": m.is_system_module()
+                })
+            }).collect::<Vec<_>>()
+        })
+    }).collect::<Vec<_>>();
     
-    // Collect network connections (simplified)
-    let network_connections = collect_network_connections();
+    // Collect network connections using the network module
+    let (network_connections_data, network_logs) = network::collect_network_connections();
+    let network_connections = network_connections_data.into_iter().map(|conn| {
+        json!({
+            "protocol": conn.protocol,
+            "local_address": conn.local_address,
+            "remote_address": conn.remote_address,
+            "state": conn.state,
+            "owning_pid": conn.owning_pid,
+            "is_external": conn.is_external()
+        })
+    }).collect::<Vec<_>>();
     
-    // Collect persistence mechanisms (simplified)
-    let persistence_mechanisms = collect_persistence_mechanisms();
+    // Collect persistence mechanisms using the persistence module
+    let (persistence_mechanisms_data, persistence_logs) = persistence::collect_persistence_mechanisms();
+    let persistence_mechanisms = persistence_mechanisms_data.into_iter().map(|p| {
+        json!({
+            "type": p.mechanism_type,
+            "name": p.name,
+            "command": p.command,
+            "source": p.source
+        })
+    }).collect::<Vec<_>>();
     
     // Collect event logs (simplified)
     let event_logs = collect_event_logs(&hostname);
@@ -84,33 +130,7 @@ fn main() {
             "persistence_mechanisms": persistence_mechanisms,
             "event_logs": event_logs
         },
-        "collection_log": [
-            {
-                "timestamp": chrono::Utc::now().to_rfc3339(),
-                "level": "INFO",
-                "message": "System information collected"
-            },
-            {
-                "timestamp": chrono::Utc::now().to_rfc3339(),
-                "level": "INFO",
-                "message": "Process enumeration completed"
-            },
-            {
-                "timestamp": chrono::Utc::now().to_rfc3339(),
-                "level": "INFO",
-                "message": "Network connections collected"
-            },
-            {
-                "timestamp": chrono::Utc::now().to_rfc3339(),
-                "level": "INFO",
-                "message": "Persistence mechanisms detected"
-            },
-            {
-                "timestamp": chrono::Utc::now().to_rfc3339(),
-                "level": "INFO",
-                "message": "Event logs collected"
-            }
-        ]
+        "collection_log": create_collection_log(process_logs, network_logs, persistence_logs)
     });
 
     if matches.get_flag("verbose") {
@@ -166,171 +186,7 @@ fn collect_system_info(sys: &System, hostname: &str, username: &str) -> serde_js
     })
 }
 
-fn collect_processes(sys: &System) -> Vec<serde_json::Value> {
-    let mut processes = Vec::new();
-    
-    for (pid, process) in sys.processes() {
-        let process_info = json!({
-            "pid": pid.as_u32(),
-            "name": process.name(),
-            "executable_path": process.exe().map(|p| p.to_string_lossy().to_string()).unwrap_or_else(|| "N/A".to_string()),
-            "command_line": process.cmd().join(" "),
-            "parent_pid": process.parent().map(|p| p.as_u32()).unwrap_or(0),
-            "user": process.user_id().map(|u| u.to_string()).unwrap_or_else(|| "N/A".to_string()),
-            "memory_usage_mb": (process.memory() as f64) / (1024.0 * 1024.0),
-            "cpu_usage": process.cpu_usage(),
-            "start_time": chrono::Utc::now().to_rfc3339(), // Simplified
-            "status": format!("{:?}", process.status())
-        });
-        processes.push(process_info);
-    }
-    
-    // Sort by PID for consistent output
-    processes.sort_by(|a, b| {
-        let pid_a = a["pid"].as_u64().unwrap_or(0);
-        let pid_b = b["pid"].as_u64().unwrap_or(0);
-        pid_a.cmp(&pid_b)
-    });
-    
-    processes
-}
 
-fn collect_network_connections() -> Vec<serde_json::Value> {
-    // Simplified network collection - in a full implementation, this would use Windows APIs
-    let mut connections = Vec::new();
-    
-    // Add some common connections that are likely to exist
-    connections.push(json!({
-        "protocol": "TCP",
-        "local_address": "127.0.0.1",
-        "local_port": 135,
-        "remote_address": "0.0.0.0",
-        "remote_port": 0,
-        "state": "LISTENING",
-        "pid": 4,
-        "process_name": "System"
-    }));
-    
-    connections.push(json!({
-        "protocol": "TCP",
-        "local_address": "0.0.0.0",
-        "local_port": 445,
-        "remote_address": "0.0.0.0",
-        "remote_port": 0,
-        "state": "LISTENING",
-        "pid": 4,
-        "process_name": "System"
-    }));
-    
-    // Try to get actual network information using netstat command
-    if let Ok(output) = std::process::Command::new("netstat")
-        .args(["-ano"])
-        .output() {
-        if let Ok(netstat_output) = String::from_utf8(output.stdout) {
-            for line in netstat_output.lines().skip(4) { // Skip header lines
-                if let Some(conn) = parse_netstat_line(line) {
-                    connections.push(conn);
-                }
-            }
-        }
-    }
-    
-    connections
-}
-
-fn parse_netstat_line(line: &str) -> Option<serde_json::Value> {
-    let parts: Vec<&str> = line.split_whitespace().collect();
-    if parts.len() >= 5 {
-        let protocol = parts[0];
-        let local_addr_parts: Vec<&str> = parts[1].rsplitn(2, ':').collect();
-        let remote_addr_parts: Vec<&str> = parts[2].rsplitn(2, ':').collect();
-        
-        if local_addr_parts.len() == 2 && remote_addr_parts.len() == 2 {
-            return Some(json!({
-                "protocol": protocol,
-                "local_address": local_addr_parts[1],
-                "local_port": local_addr_parts[0].parse::<u16>().unwrap_or(0),
-                "remote_address": remote_addr_parts[1],
-                "remote_port": remote_addr_parts[0].parse::<u16>().unwrap_or(0),
-                "state": parts.get(3).unwrap_or(&"UNKNOWN"),
-                "pid": parts.get(4).and_then(|p| p.parse::<u32>().ok()).unwrap_or(0),
-                "process_name": "Unknown"
-            }));
-        }
-    }
-    None
-}
-
-fn collect_persistence_mechanisms() -> Vec<serde_json::Value> {
-    let mut mechanisms = Vec::new();
-    
-    // Check common registry run keys
-    let hklm = winreg::RegKey::predef(winreg::enums::HKEY_LOCAL_MACHINE);
-    if let Ok(run_key) = hklm.open_subkey("SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Run") {
-        for result in run_key.enum_values() {
-            if let Ok((name, value)) = result {
-                mechanisms.push(json!({
-                    "type": "Registry Run Key",
-                    "location": "HKEY_LOCAL_MACHINE\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Run",
-                    "name": name,
-                    "value": value.to_string(),
-                    "is_suspicious": is_suspicious_persistence(&name, &value.to_string())
-                }));
-            }
-        }
-    }
-    
-    // Check user-specific run keys
-    let hkcu = winreg::RegKey::predef(winreg::enums::HKEY_CURRENT_USER);
-    if let Ok(run_key) = hkcu.open_subkey("SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Run") {
-        for result in run_key.enum_values() {
-            if let Ok((name, value)) = result {
-                mechanisms.push(json!({
-                    "type": "Registry Run Key (User)",
-                    "location": "HKEY_CURRENT_USER\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Run",
-                    "name": name,
-                    "value": value.to_string(),
-                    "is_suspicious": is_suspicious_persistence(&name, &value.to_string())
-                }));
-            }
-        }
-    }
-    
-    // Check startup folder
-    if let Ok(startup_path) = std::env::var("APPDATA") {
-        let startup_dir = format!("{}\\Microsoft\\Windows\\Start Menu\\Programs\\Startup", startup_path);
-        if let Ok(entries) = std::fs::read_dir(&startup_dir) {
-            for entry in entries.filter_map(|e| e.ok()) {
-                if let Some(name) = entry.file_name().to_str() {
-                    mechanisms.push(json!({
-                        "type": "Startup Folder",
-                        "location": startup_dir,
-                        "name": name,
-                        "value": entry.path().to_string_lossy(),
-                        "is_suspicious": is_suspicious_persistence(name, &entry.path().to_string_lossy())
-                    }));
-                }
-            }
-        }
-    }
-    
-    mechanisms
-}
-
-fn is_suspicious_persistence(name: &str, value: &str) -> bool {
-    let suspicious_indicators = [
-        "temp", "tmp", "appdata", "roaming", "users", "downloads",
-        ".exe.exe", ".scr", ".bat", ".cmd", ".vbs", ".js",
-        "svchost", "winlogon", "explorer", "system32"
-    ];
-    
-    let name_lower = name.to_lowercase();
-    let value_lower = value.to_lowercase();
-    
-    suspicious_indicators.iter().any(|&indicator| {
-        name_lower.contains(indicator) || value_lower.contains(indicator)
-    })
-}
 
 fn collect_event_logs(hostname: &str) -> Vec<serde_json::Value> {
     let mut events = Vec::new();
@@ -398,4 +254,50 @@ fn create_event_from_map(event_map: &HashMap<String, String>, hostname: &str) ->
         "message": event_map.get("Description").unwrap_or(&"No description available".to_string()),
         "computer": hostname
     })
+}
+
+fn create_collection_log(process_logs: Vec<types::LogEntry>, network_logs: Vec<types::LogEntry>, persistence_logs: Vec<types::LogEntry>) -> Vec<serde_json::Value> {
+    let mut all_logs = Vec::new();
+    
+    // Add process collection logs
+    for log in process_logs {
+        all_logs.push(json!({
+            "timestamp": log.timestamp,
+            "level": log.level,
+            "message": log.message
+        }));
+    }
+    
+    // Add network collection logs
+    for log in network_logs {
+        all_logs.push(json!({
+            "timestamp": log.timestamp,
+            "level": log.level,
+            "message": log.message
+        }));
+    }
+    
+    // Add persistence collection logs
+    for log in persistence_logs {
+        all_logs.push(json!({
+            "timestamp": log.timestamp,
+            "level": log.level,
+            "message": log.message
+        }));
+    }
+    
+    // Add other collection logs
+    all_logs.push(json!({
+        "timestamp": chrono::Utc::now().to_rfc3339(),
+        "level": "INFO",
+        "message": "System information collected"
+    }));
+    
+    all_logs.push(json!({
+        "timestamp": chrono::Utc::now().to_rfc3339(),
+        "level": "INFO",
+        "message": "Event logs collected"
+    }));
+    
+    all_logs
 }

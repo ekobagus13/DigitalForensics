@@ -9,6 +9,14 @@ repository = "https://github.com/triageir/triageir-cli"
 keywords = ["forensics", "security", "incident-response", "windows"]
 categories = ["command-line-utilities", "development-tools"]
 
+[lib]
+name = "triageir_cli"
+path = "src/lib.rs"
+
+[[bin]]
+name = "triageir-cli"
+path = "src/main.rs"
+
 [profile.release]
 # Optimize for size and performance
 opt-level = 3

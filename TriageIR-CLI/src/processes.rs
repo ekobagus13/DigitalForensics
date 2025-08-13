@@ -1,5 +1,5 @@
 use crate::types::{Process, LogEntry};
-use sysinfo::{System, SystemExt, ProcessExt, Pid};
+use sysinfo::{System, Pid};
 use sha2::{Sha256, Digest};
 use std::fs;
 use std::path::Path;
@@ -40,6 +40,10 @@ pub fn collect_processes() -> (Vec<Process>, Vec<LogEntry>) {
                     proc_info.sha256_hash = "N/A".to_string();
                 }
                 
+                // For now, just add a placeholder for loaded modules
+                // TODO: Implement Windows API-based module enumeration in next iteration
+                proc_info.loaded_modules = Vec::new();
+                
                 processes.push(proc_info);
                 successful_collections += 1;
             }
@@ -63,7 +67,7 @@ pub fn collect_processes() -> (Vec<Process>, Vec<LogEntry>) {
 }
 
 /// Collect information about a single process
-fn collect_single_process(pid: Pid, process: &sysinfo::Process) -> Result<Process, String> {
+fn collect_single_process(pid: Pid, process: &sysinfo::Process) -> std::result::Result<Process, String> {
     let pid_u32 = pid.as_u32();
     let parent_pid = process.parent().map(|p| p.as_u32()).unwrap_or(0);
     
@@ -87,7 +91,7 @@ fn collect_single_process(pid: Pid, process: &sysinfo::Process) -> Result<Proces
 }
 
 /// Calculate SHA-256 hash of a file
-fn calculate_file_hash(file_path: &str) -> Result<String, String> {
+fn calculate_file_hash(file_path: &str) -> std::result::Result<String, String> {
     if file_path == "N/A" || file_path.is_empty() {
         return Err("Invalid file path".to_string());
     }
@@ -129,7 +133,7 @@ pub fn build_process_tree(processes: &[Process]) -> Vec<(u32, Vec<u32>)> {
 }
 
 /// Find processes by name (case-insensitive)
-pub fn find_processes_by_name(processes: &[Process], name: &str) -> Vec<&Process> {
+pub fn find_processes_by_name<'a>(processes: &'a [Process], name: &str) -> Vec<&'a Process> {
     let name_lower = name.to_lowercase();
     processes
         .iter()
@@ -138,7 +142,7 @@ pub fn find_processes_by_name(processes: &[Process], name: &str) -> Vec<&Process
 }
 
 /// Find processes with external network connections
-pub fn find_processes_with_network_activity(processes: &[Process], network_pids: &[u32]) -> Vec<&Process> {
+pub fn find_processes_with_network_activity<'a>(processes: &'a [Process], network_pids: &[u32]) -> Vec<&'a Process> {
     processes
         .iter()
         .filter(|p| network_pids.contains(&p.pid))
@@ -175,6 +179,8 @@ mod tests {
         for process in &processes {
             assert!(process.pid > 0);
             assert!(!process.name.is_empty());
+            // Should have empty modules list for now
+            assert_eq!(process.loaded_modules.len(), 0);
         }
     }
 
@@ -258,5 +264,28 @@ mod tests {
         assert_eq!(found.len(), 2);
         assert!(found.iter().any(|p| p.pid == 2));
         assert!(found.iter().any(|p| p.pid == 3));
+    }
+
+    #[test]
+    fn test_process_module_system_detection() {
+        use crate::types::ProcessModule;
+        
+        let system_module = ProcessModule::new(
+            "kernel32.dll".to_string(),
+            "C:\\Windows\\System32\\kernel32.dll".to_string(),
+            "0x7FF800000000".to_string(),
+            1024000,
+            "10.0.19041.1".to_string(),
+        );
+        assert!(system_module.is_system_module());
+        
+        let user_module = ProcessModule::new(
+            "custom.dll".to_string(),
+            "C:\\Program Files\\MyApp\\custom.dll".to_string(),
+            "0x7FF900000000".to_string(),
+            512000,
+            "1.0.0.0".to_string(),
+        );
+        assert!(!user_module.is_system_module());
     }
 }
