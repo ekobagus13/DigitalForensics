@@ -1,0 +1,406 @@
+warning: unused import: `std::collections::HashMap`
+ --> src\types.rs:2:5
+  |
+2 | use std::collections::HashMap;
+  |     ^^^^^^^^^^^^^^^^^^^^^^^^^
+  |
+  = note: `#[warn(unused_imports)]` on by default
+
+warning: unused import: `core::*`
+ --> src\network.rs:7:5
+  |
+7 |     core::*,
+  |     ^^^^^^^
+
+warning: function `get_user_domain` is never used
+  --> src\system_info.rs:94:4
+   |
+94 | fn get_user_domain(_username: &str) -> String {
+   |    ^^^^^^^^^^^^^^^
+   |
+   = note: `#[warn(dead_code)]` on by default
+
+warning: function `format_logon_time` is never used
+   --> src\system_info.rs:102:4
+    |
+102 | fn format_logon_time(_username: &str) -> String {
+    |    ^^^^^^^^^^^^^^^^^
+
+warning: function `collect_connections_fallback` is never used
+   --> src\network.rs:252:4
+    |
+252 | fn collect_connections_fallback(_protocol: &str) -> std::result::Result<Vec<NetworkConnection>, String> {
+    |    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: `triageir-cli` (lib) generated 5 warnings (run `cargo fix --lib -p triageir-cli` to apply 2 suggestions)
+warning: method `validate` is never used
+  --> src\types.rs:46:12
+   |
+12 | impl ScanResults {
+   | ---------------- method in this implementation
+...
+46 |     pub fn validate(&self) -> Result<(), String> {
+   |            ^^^^^^^^
+   |
+   = note: `#[warn(dead_code)]` on by default
+
+warning: method `total_artifact_count` is never used
+  --> src\types.rs:98:12
+   |
+96 | impl Artifacts {
+   | -------------- method in this implementation
+97 |     /// Get total count of all collected artifacts
+98 |     pub fn total_artifact_count(&self) -> usize {
+   |            ^^^^^^^^^^^^^^^^^^^^
+
+warning: associated function `new` is never used
+   --> src\types.rs:145:12
+    |
+144 | impl LoggedOnUser {
+    | ----------------- associated function in this implementation
+145 |     pub fn new(username: String, domain: String, logon_time: String) -> Self {
+    |            ^^^
+
+warning: associated function `new` is never used
+   --> src\types.rs:155:12
+    |
+154 | impl ProcessModule {
+    | ------------------ associated function in this implementation
+155 |     pub fn new(name: String, file_path: String, base_address: String, size: u32, version: String) -> Self {
+    |            ^^^
+
+warning: associated items `new` and `module_count` are never used
+   --> src\types.rs:198:12
+    |
+197 | impl Process {
+    | ------------ associated items in this implementation
+198 |     pub fn new(pid: u32, parent_pid: u32, name: String, command_line: String, executable_path: String) -> Self {
+    |            ^^^
+...
+232 |     pub fn module_count(&self) -> usize {
+    |            ^^^^^^^^^^^^
+
+warning: associated function `new` is never used
+   --> src\types.rs:259:12
+    |
+258 | impl NetworkConnection {
+    | ---------------------- associated function in this implementation
+259 |     pub fn new(protocol: String, local_address: String, remote_address: String, state: String, owning_pid: u32) -> Self {
+    |            ^^^
+
+warning: function `extract_address_and_port` is never used
+   --> src\types.rs:299:4
+    |
+299 | fn extract_address_and_port(addr_port: &str) -> (String, u16) {
+    |    ^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: associated function `new` is never used
+   --> src\types.rs:331:12
+    |
+330 | impl PersistenceMechanism {
+    | ------------------------- associated function in this implementation
+331 |     pub fn new(mechanism_type: String, name: String, command: String, source: String) -> Self {
+    |            ^^^
+
+warning: variant `WMIEventConsumer` is never constructed
+   --> src\types.rs:362:5
+    |
+357 | pub enum PersistenceType {
+    |          --------------- variant in this enum
+...
+362 |     WMIEventConsumer,
+    |     ^^^^^^^^^^^^^^^^
+
+warning: associated function `new` is never used
+   --> src\types.rs:411:12
+    |
+410 | impl EventLogEntry {
+    | ------------------ associated function in this implementation
+411 |     pub fn new(event_id: u32, level: String, timestamp: String, message: String) -> Self {
+    |            ^^^
+
+warning: associated function `info_fmt` is never used
+   --> src\types.rs:469:12
+    |
+443 | impl LogEntry {
+    | ------------- associated function in this implementation
+...
+469 |     pub fn info_fmt(message: &str, args: &[&str]) -> Self {
+    |            ^^^^^^^^
+
+warning: function `build_process_tree` is never used
+   --> src\processes.rs:127:8
+    |
+127 | pub fn build_process_tree(processes: &[Process]) -> Vec<(u32, Vec<u32>)> {
+    |        ^^^^^^^^^^^^^^^^^^
+
+warning: function `find_processes_by_name` is never used
+   --> src\processes.rs:146:8
+    |
+146 | pub fn find_processes_by_name<'a>(processes: &'a [Process], name: &str) -> Vec<&'a Process> {
+    |        ^^^^^^^^^^^^^^^^^^^^^^
+
+warning: function `find_processes_with_network_activity` is never used
+   --> src\processes.rs:155:8
+    |
+155 | pub fn find_processes_with_network_activity<'a>(processes: &'a [Process], network_pids: &[u32]) -> Vec<&'a Process> {
+    |        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: function `collect_system_info` is never used
+ --> src\system_info.rs:6:8
+  |
+6 | pub fn collect_system_info() -> (SystemInfo, Vec<LogEntry>) {
+  |        ^^^^^^^^^^^^^^^^^^^
+
+warning: function `collect_uptime` is never used
+  --> src\system_info.rs:40:4
+   |
+40 | fn collect_uptime() -> Result<u64, String> {
+   |    ^^^^^^^^^^^^^^
+
+warning: function `collect_logged_on_users` is never used
+  --> src\system_info.rs:59:4
+   |
+59 | fn collect_logged_on_users() -> Result<Vec<LoggedOnUser>, String> {
+   |    ^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: function `get_user_domain` is never used
+  --> src\system_info.rs:94:4
+   |
+94 | fn get_user_domain(_username: &str) -> String {
+   |    ^^^^^^^^^^^^^^^
+
+warning: function `get_detailed_os_version` is never used
+   --> src\system_info.rs:109:8
+    |
+109 | pub fn get_detailed_os_version() -> String {
+    |        ^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: function `get_system_hostname` is never used
+   --> src\system_info.rs:121:8
+    |
+121 | pub fn get_system_hostname() -> String {
+    |        ^^^^^^^^^^^^^^^^^^^
+
+warning: function `get_network_active_pids` is never used
+   --> src\network.rs:294:8
+    |
+294 | pub fn get_network_active_pids(connections: &[NetworkConnection]) -> Vec<u32> {
+    |        ^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: function `filter_connections_by_protocol` is never used
+   --> src\network.rs:302:8
+    |
+302 | pub fn filter_connections_by_protocol<'a>(connections: &'a [NetworkConnection], protocol: &str) -> Vec<&'a NetworkConnection> {
+    |        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: function `filter_external_connections` is never used
+   --> src\network.rs:307:8
+    |
+307 | pub fn filter_external_connections(connections: &[NetworkConnection]) -> Vec<&NetworkConnection> {
+    |        ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: function `group_connections_by_process` is never used
+   --> src\network.rs:312:8
+    |
+312 | pub fn group_connections_by_process(connections: &[NetworkConnection]) -> HashMap<u32, Vec<&NetworkConnection>> {
+    |        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: function `filter_mechanisms_by_type` is never used
+   --> src\persistence.rs:295:8
+    |
+295 | pub fn filter_mechanisms_by_type<'a>(mechanisms: &'a [PersistenceMechanism], mechanism_type: &str) -> Vec<&'a PersistenceMechanism> {
+    |        ^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: function `find_suspicious_mechanisms` is never used
+   --> src\persistence.rs:300:8
+    |
+300 | pub fn find_suspicious_mechanisms(mechanisms: &[PersistenceMechanism]) -> Vec<&PersistenceMechanism> {
+    |        ^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: function `is_mechanism_suspicious` is never used
+   --> src\persistence.rs:464:4
+    |
+464 | fn is_mechanism_suspicious(mechanism: &PersistenceMechanism) -> bool {
+    |    ^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: function `filter_events_by_id` is never used
+   --> src\event_logs.rs:318:8
+    |
+318 | pub fn filter_events_by_id(events: &[EventLogEntry], event_id: u32) -> Vec<&EventLogEntry> {
+    |        ^^^^^^^^^^^^^^^^^^^
+
+warning: function `filter_events_by_level` is never used
+   --> src\event_logs.rs:323:8
+    |
+323 | pub fn filter_events_by_level<'a>(events: &'a [EventLogEntry], level: &str) -> Vec<&'a EventLogEntry> {
+    |        ^^^^^^^^^^^^^^^^^^^^^^
+
+warning: function `filter_events_by_time_range` is never used
+   --> src\event_logs.rs:328:8
+    |
+328 | pub fn filter_events_by_time_range<'a>(events: &'a [EventLogEntry], start_time: &str, end_time: &str) -> Vec<&'a EventLogEntry> {
+    |        ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: function `get_recent_events` is never used
+   --> src\event_logs.rs:335:8
+    |
+335 | pub fn get_recent_events(events: &[EventLogEntry], count: usize) -> Vec<&EventLogEntry> {
+    |        ^^^^^^^^^^^^^^^^^
+
+warning: function `find_logon_events` is never used
+   --> src\event_logs.rs:342:8
+    |
+342 | pub fn find_logon_events(security_events: &[EventLogEntry]) -> Vec<&EventLogEntry> {
+    |        ^^^^^^^^^^^^^^^^^
+
+warning: function `find_process_events` is never used
+   --> src\event_logs.rs:348:8
+    |
+348 | pub fn find_process_events(security_events: &[EventLogEntry]) -> Vec<&EventLogEntry> {
+    |        ^^^^^^^^^^^^^^^^^^^
+
+warning: methods `log_fmt`, `get_entries_by_level`, `get_count_by_level`, and `clear` are never used
+  --> src\logger.rs:57:12
+   |
+12 | impl Logger {
+   | ----------- methods in this implementation
+...
+57 |     pub fn log_fmt(&self, level: LogLevel, format: &str, args: &[&dyn std::fmt::Display]) {
+   |            ^^^^^^^
+...
+72 |     pub fn get_entries_by_level(&self, level: LogLevel) -> Vec<LogEntry> {
+   |            ^^^^^^^^^^^^^^^^^^^^
+...
+84 |     pub fn get_count_by_level(&self, level: LogLevel) -> usize {
+   |            ^^^^^^^^^^^^^^^^^^
+...
+95 |     pub fn clear(&self) {
+   |            ^^^^^
+
+warning: function `format_message` is never used
+   --> src\logger.rs:155:4
+    |
+155 | fn format_message(format: &str, args: &[&dyn std::fmt::Display]) -> String {
+    |    ^^^^^^^^^^^^^^
+
+warning: variants `AccessDenied`, `NotFound`, `NetworkError`, `Timeout`, and `Unknown` are never constructed
+   --> src\logger.rs:185:9
+    |
+183 |     pub enum ErrorKind {
+    |              --------- variants in this enum
+184 |         /// Access denied or insufficient privileges
+185 |         AccessDenied,
+    |         ^^^^^^^^^^^^
+...
+189 |         NotFound,
+    |         ^^^^^^^^
+...
+193 |         NetworkError,
+    |         ^^^^^^^^^^^^
+194 |         /// Timeout occurred
+195 |         Timeout,
+    |         ^^^^^^^
+196 |         /// Unknown or unexpected error
+197 |         Unknown,
+    |         ^^^^^^^
+    |
+    = note: `ErrorKind` has derived impls for the traits `Clone` and `Debug`, but these are intentionally ignored during dead code analysis
+
+warning: associated items `with_context`, `access_denied`, `not_found`, and `is_retryable` are never used
+   --> src\logger.rs:211:16
+    |
+200 |     impl ForensicError {
+    |     ------------------ associated items in this implementation
+...
+211 |         pub fn with_context(kind: ErrorKind, message: &str, context: &str) -> Self {
+    |                ^^^^^^^^^^^^
+...
+220 |         pub fn access_denied(message: &str) -> Self {
+    |                ^^^^^^^^^^^^^
+...
+230 |         pub fn not_found(message: &str) -> Self {
+    |                ^^^^^^^^^
+...
+245 |         pub fn is_retryable(&self) -> bool {
+    |                ^^^^^^^^^^^^
+
+warning: function `retry_operation` is never used
+   --> src\logger.rs:304:12
+    |
+304 |     pub fn retry_operation<T, F>(
+    |            ^^^^^^^^^^^^^^^
+
+warning: function `get_prefetch_statistics` is never used
+   --> src\prefetch.rs:258:8
+    |
+258 | pub fn get_prefetch_statistics(prefetch_files: &[PrefetchFile]) -> std::collections::HashMap<String, u32> {
+    |        ^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: function `find_prefetch_by_executable` is never used
+   --> src\prefetch.rs:295:8
+    |
+295 | pub fn find_prefetch_by_executable<'a>(prefetch_files: &'a [PrefetchFile], executable: &str) -> Vec<&'a PrefetchFile> {
+    |        ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: function `get_most_executed_programs` is never used
+   --> src\prefetch.rs:302:8
+    |
+302 | pub fn get_most_executed_programs<'a>(prefetch_files: &'a [PrefetchFile], limit: usize) -> Vec<(&'a PrefetchFile, u32)> {
+    |        ^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: function `get_recently_executed_programs` is never used
+   --> src\prefetch.rs:313:8
+    |
+313 | pub fn get_recently_executed_programs<'a>(prefetch_files: &'a [PrefetchFile], limit: usize) -> Vec<&'a PrefetchFile> {
+    |        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: function `get_shimcache_statistics` is never used
+   --> src\shimcache.rs:325:8
+    |
+325 | pub fn get_shimcache_statistics(shimcache_entries: &[ShimcacheEntry]) -> HashMap<String, u32> {
+    |        ^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: function `find_shimcache_by_path` is never used
+   --> src\shimcache.rs:366:8
+    |
+366 | pub fn find_shimcache_by_path<'a>(shimcache_entries: &'a [ShimcacheEntry], search_path: &str) -> Vec<&'a ShimcacheEntry> {
+    |        ^^^^^^^^^^^^^^^^^^^^^^
+
+warning: function `get_recently_modified_entries` is never used
+   --> src\shimcache.rs:373:8
+    |
+373 | pub fn get_recently_modified_entries<'a>(shimcache_entries: &'a [ShimcacheEntry], limit: usize) -> Vec<&'a ShimcacheEntry> {
+    |        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: function `get_executed_programs` is never used
+   --> src\shimcache.rs:382:8
+    |
+382 | pub fn get_executed_programs<'a>(shimcache_entries: &'a [ShimcacheEntry]) -> Vec<&'a ShimcacheEntry> {
+    |        ^^^^^^^^^^^^^^^^^^^^^
+
+warning: associated items `new`, `add_custody_entry`, and `finalize` are never used
+   --> src\forensic_types.rs:855:12
+    |
+853 | impl ForensicEvidence {
+    | --------------------- associated items in this implementation
+854 |     /// Create a new forensic evidence package
+855 |     pub fn new(case_id: String, collector_info: CollectorInfo) -> Self {
+    |            ^^^
+...
+883 |     pub fn add_custody_entry(&mut self, action: String, person: String, organization: String, notes: String) {
+    |            ^^^^^^^^^^^^^^^^^
+...
+894 |     pub fn finalize(&mut self) {
+    |            ^^^^^^^^
+
+warning: associated function `new` is never used
+    --> src\forensic_types.rs:1050:8
+     |
+1049 | impl CollectionAudit {
+     | -------------------- associated function in this implementation
+1050 |     fn new(start_time: String) -> Self {
+     |        ^^^
+
+warning: `triageir-cli` (bin "triageir-cli") generated 52 warnings (4 duplicates)
+    Finished `release` profile [optimized] target(s) in 0.23s

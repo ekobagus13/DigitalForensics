@@ -187,7 +187,7 @@ mod tests {
         
         // Each process should have basic information
         for process in &processes {
-            assert!(process.pid > 0);
+            assert!(process.pid >= 0); // PID 0 is valid for System Idle Process
             assert!(!process.name.is_empty());
             // Should have empty modules list for now
             assert_eq!(process.loaded_modules.len(), 0);
