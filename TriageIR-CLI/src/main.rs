@@ -2,6 +2,8 @@ use clap::{Arg, Command};
 use serde_json::json;
 use std::fs;
 use std::sync::Arc;
+use std::env;
+use std::path::PathBuf;
 use sysinfo::System;
 
 mod types;
@@ -67,6 +69,11 @@ fn main() {
     let format = matches.get_one::<String>("format").unwrap();
     let _password = matches.get_one::<String>("password"); // For future use
     
+    // Detect portable mode
+    let portable_mode = env::var("TRIAGEIR_PORTABLE").is_ok();
+    let usb_drive = env::var("TRIAGEIR_USB_DRIVE").ok();
+    let portable_output_dir = env::var("TRIAGEIR_OUTPUT_DIR").ok();
+    
     // Validate format argument
     if format != "json" {
         eprintln!("Error: Only 'json' format is currently supported");
@@ -83,16 +90,45 @@ fn main() {
     
     let cli_version = env!("CARGO_PKG_VERSION");
     logger.info(&format!("TriageIR CLI v{} - Digital Forensics Triage Tool started", cli_version));
+    
+    // Log portable mode information
+    if portable_mode {
+        logger.info("Running in PORTABLE MODE");
+        if let Some(ref usb) = usb_drive {
+            logger.info(&format!("USB Drive: {}", usb));
+        }
+        if let Some(ref output_dir) = portable_output_dir {
+            logger.info(&format!("Portable Output Directory: {}", output_dir));
+        }
+    }
+    
     logger.info(&format!("Target system: {}", hostname));
     logger.info(&format!("OS Version: {}", os_version));
     logger.info(&format!("Current user: {}", std::env::var("USERNAME").unwrap_or_else(|_| "Unknown".to_string())));
     logger.info(&format!("Verbose mode: {}", verbose));
     logger.info(&format!("Output format: {}", format));
-    if let Some(output) = output_file {
-        logger.info(&format!("Output file: {}", output));
+    
+    // Handle output file with portable mode support
+    let final_output_file = if let Some(output) = output_file {
+        let output_path = PathBuf::from(output);
+        if portable_mode && output_path.is_relative() {
+            // If in portable mode and output is relative, use portable output directory
+            if let Some(ref portable_dir) = portable_output_dir {
+                let portable_path = PathBuf::from(portable_dir).join(output_path);
+                logger.info(&format!("Output file (portable): {}", portable_path.display()));
+                Some(portable_path.to_string_lossy().to_string())
+            } else {
+                logger.info(&format!("Output file: {}", output));
+                Some(output.clone())
+            }
+        } else {
+            logger.info(&format!("Output file: {}", output));
+            Some(output.clone())
+        }
     } else {
         logger.info("Output: stdout");
-    }
+        None
+    };
 
     if verbose {
         println!("TriageIR CLI v{} - Digital Forensics Triage Tool", cli_version);

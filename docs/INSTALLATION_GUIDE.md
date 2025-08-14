@@ -85,6 +85,50 @@
    └── README.md
    ```
 
+### Method 2b: USB Zero-Installation Deployment
+
+**Best for**: Incident response, field forensics, zero-footprint deployment
+
+1. **Download USB Portable Package**
+   ```
+   Download: TriageIR-USB-Portable.zip
+   Size: ~50 MB
+   ```
+
+2. **Deploy to USB Drive**
+   ```cmd
+   # Extract to USB drive root
+   # Maintains directory structure automatically
+   # Includes launcher scripts and utilities
+   ```
+
+3. **USB Directory Structure**
+   ```
+   USB-Drive:\
+   ├── TriageIR-USB.bat      (Main launcher)
+   ├── Quick-Scan.bat        (Immediate scan)
+   ├── CLI\triageir-cli.exe  (Static executable)
+   ├── GUI\TriageIR.exe      (Portable GUI)
+   ├── Output\               (Results folder)
+   ├── Tools\                (Utilities)
+   └── docs\                 (Documentation)
+   ```
+
+4. **Usage**
+   - Insert USB drive into target system
+   - Run `TriageIR-USB.bat` for interactive mode
+   - Or run `Quick-Scan.bat` for immediate scan
+   - Results automatically saved to USB drive
+
+**Key Features**:
+- ✅ **Zero Installation** - No system modifications
+- ✅ **Portable** - Runs from any USB drive
+- ✅ **Self-Contained** - All dependencies included
+- ✅ **Automatic Output** - Results saved to USB
+- ✅ **Forensically Sound** - Read-only system access
+
+See [USB Deployment Guide](USB_DEPLOYMENT_GUIDE.md) for complete instructions.
+
 ### Method 3: Package Managers
 
 #### Chocolatey

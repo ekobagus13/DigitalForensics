@@ -7,6 +7,8 @@
     "start": "electron .",
     "dev": "electron . --dev",
     "build": "electron-builder",
+    "build:portable": "electron-builder --config.portable=true --config.nsis.oneClick=false",
+    "dist": "electron-builder --publish=never",
     "test": "node test.js"
   },
   "keywords": [
@@ -34,8 +36,20 @@
       "package.json"
     ],
     "win": {
-      "target": "nsis",
+      "target": [
+        {
+          "target": "nsis",
+          "arch": ["x64"]
+        },
+        {
+          "target": "portable",
+          "arch": ["x64"]
+        }
+      ],
       "icon": "assets/icon.ico"
+    },
+    "portable": {
+      "artifactName": "${productName}-Portable.${ext}"
     },
     "extraResources": [
       {

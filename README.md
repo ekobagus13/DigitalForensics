@@ -113,8 +113,162 @@ npm run dev
 
 MIT License - See individual component READMEs for details.
 
+## 📚 Documentation
+
+### User Documentation
+- **[Quick Start Guide](docs/QUICK_START_GUIDE.md)** - Get running in 5 minutes
+- **[User Manual](docs/USER_MANUAL.md)** - Complete user guide with examples
+- **[Installation Guide](docs/INSTALLATION_GUIDE.md)** - Multiple installation methods
+- **[Usage Examples](examples/usage-examples.md)** - Real-world scenarios and scripts
+
+### Technical Documentation
+- **[Developer Guide](docs/DEVELOPER_GUIDE.md)** - Development and contribution guide
+- **[API Reference](docs/API_REFERENCE.md)** - Complete API and schema documentation
+- **[Deployment Guide](DEPLOYMENT_GUIDE.md)** - Enterprise deployment strategies
+
+### Additional Resources
+- **[Changelog](CHANGELOG.md)** - Version history and release notes
+- **[Analysis Scripts](examples/analysis-scripts/)** - Python scripts for data analysis
+- **[JSON Schema](schemas/triageir-output.schema.json)** - Output validation schema
+
+## 🚀 Quick Installation
+
+### Option 1: Windows Installer (Recommended)
+```cmd
+# Download and run installer
+curl -L -o TriageIR-Setup.exe https://github.com/triageir/releases/latest/TriageIR-Setup.exe
+TriageIR-Setup.exe
+```
+
+### Option 2: Portable Installation
+```cmd
+# Download and extract
+curl -L -o TriageIR-Portable.zip https://github.com/triageir/releases/latest/TriageIR-Portable.zip
+powershell -command "Expand-Archive -Path TriageIR-Portable.zip -DestinationPath C:\Tools\TriageIR"
+```
+
+### Option 2b: USB Zero-Installation
+```cmd
+# Download USB portable package
+curl -L -o TriageIR-USB-Portable.zip https://github.com/triageir/releases/latest/TriageIR-USB-Portable.zip
+
+# Extract to USB drive (e.g., F:\)
+powershell -command "Expand-Archive -Path TriageIR-USB-Portable.zip -DestinationPath F:\"
+
+# Run directly from USB
+F:\TriageIR-USB.bat
+```
+
+**USB Features**:
+- ✅ Zero installation required
+- ✅ Runs from any USB drive  
+- ✅ Self-contained with all dependencies
+- ✅ Automatic output organization
+- ✅ Perfect for incident response
+
+### Option 3: Package Managers
+```powershell
+# Chocolatey
+choco install triageir
+
+# Scoop
+scoop bucket add triageir https://github.com/triageir/scoop-bucket
+scoop install triageir
+```
+
+## 🔧 Build from Source
+
+### Prerequisites
+- Rust 1.70+ (CLI)
+- Node.js 16+ (GUI)
+- Windows 10+ with Visual Studio Build Tools
+
+### Build Steps
+```cmd
+# Clone repository
+git clone https://github.com/triageir/triageir.git
+cd triageir
+
+# Build CLI
+cd TriageIR-CLI
+cargo build --release
+
+# Build GUI
+cd ../TriageIR-GUI
+npm install
+npm run build
+
+# Create deployment package
+cd ..
+scripts\create-deployment-package.bat
+```
+
+## 🧪 Testing and Validation
+
+### Run Test Suite
+```cmd
+# CLI tests
+cd TriageIR-CLI
+cargo test
+
+# GUI tests
+cd TriageIR-GUI
+npm test
+
+# Integration tests
+test-scripts\run-comprehensive-tests.bat
+```
+
+### Validate Output
+```cmd
+# Validate JSON output
+python examples\analysis-scripts\validate-json.py scan_results.json
+
+# Generate analysis report
+python examples\analysis-scripts\generate-report.py scan_results.json -o report.html
+```
+
+## 📦 Deployment Artifacts
+
+### Release Packages
+- **TriageIR-Setup.exe** - Windows installer with all components
+- **TriageIR-Portable.zip** - Portable package for USB/network deployment
+- **TriageIR-CLI-Only.zip** - Command-line interface only
+- **TriageIR-Source.zip** - Complete source code
+
+### Deployment Scripts
+- **[create-deployment-package.bat](scripts/create-deployment-package.bat)** - Build complete deployment package
+- **[validate-deployment.bat](scripts/validate-deployment.bat)** - Validate package integrity
+- **[create-checksums.bat](scripts/create-checksums.bat)** - Generate SHA-256 checksums
+- **[sign-executables.bat](scripts/sign-executables.bat)** - Code signing for security
+
+### Enterprise Deployment
+- Group Policy deployment templates
+- SCCM application packages
+- PowerShell DSC configurations
+- Ansible playbooks
+
+## 🔒 Security and Integrity
+
+### Digital Signatures
+All executables are digitally signed for authenticity and security.
+
+### Checksums (SHA-256)
+```
+TriageIR-Setup.exe: [checksum-available-in-release]
+TriageIR-Portable.zip: [checksum-available-in-release]
+```
+
+### Security Features
+- Read-only system access
+- No network communication
+- Comprehensive audit logging
+- Cryptographic hash verification
+- Chain of custody documentation
+
 ---
 
 **Status**: ✅ Production Ready  
 **Version**: 1.0.0  
-**Last Updated**: December 2025
+**Last Updated**: December 2024  
+**License**: MIT License
