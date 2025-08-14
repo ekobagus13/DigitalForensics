@@ -7,7 +7,24 @@ class TriageIRMain {
     constructor() {
         this.mainWindow = null;
         this.cliPath = null;
+        this.portableMode = false;
+        this.usbDrive = null;
+        this.outputDir = null;
+        this.detectPortableMode();
         this.setupApp();
+    }
+
+    detectPortableMode() {
+        // Check for portable mode environment variables
+        this.portableMode = process.env.TRIAGEIR_PORTABLE === '1';
+        this.usbDrive = process.env.TRIAGEIR_USB_DRIVE;
+        this.outputDir = process.env.TRIAGEIR_OUTPUT_DIR;
+        
+        if (this.portableMode) {
+            console.log('TriageIR GUI running in PORTABLE MODE');
+            console.log('USB Drive:', this.usbDrive);
+            console.log('Output Directory:', this.outputDir);
+        }
     }
 
     setupApp() {
@@ -52,6 +69,26 @@ class TriageIRMain {
     }
 
     findCLIExecutable() {
+        // Check for portable mode CLI path first
+        if (this.portableMode && process.env.TRIAGEIR_CLI_PATH) {
+            const portableCLIPath = process.env.TRIAGEIR_CLI_PATH;
+            if (fs.existsSync(portableCLIPath)) {
+                this.cliPath = portableCLIPath;
+                console.log(`Found CLI in portable mode at: ${portableCLIPath}`);
+                return;
+            }
+        }
+
+        // If in portable mode, check USB drive CLI location
+        if (this.portableMode && this.usbDrive) {
+            const usbCLIPath = path.join(this.usbDrive, 'CLI', 'triageir-cli.exe');
+            if (fs.existsSync(usbCLIPath)) {
+                this.cliPath = usbCLIPath;
+                console.log(`Found CLI on USB drive at: ${usbCLIPath}`);
+                return;
+            }
+        }
+
         const possiblePaths = [
             // Development paths
             path.join(__dirname, '../../TriageIR-CLI/target/release/triageir-cli.exe'),
@@ -61,7 +98,9 @@ class TriageIRMain {
             // Same directory
             path.join(__dirname, 'triageir-cli.exe'),
             // Current working directory
-            path.join(process.cwd(), 'triageir-cli.exe')
+            path.join(process.cwd(), 'triageir-cli.exe'),
+            // Relative CLI directory (for portable deployment)
+            path.join(__dirname, '../CLI/triageir-cli.exe')
         ];
 
         for (const cliPath of possiblePaths) {
