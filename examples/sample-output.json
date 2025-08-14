@@ -1,0 +1,340 @@
+{
+  "scan_metadata": {
+    "scan_id": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
+    "scan_start_utc": "2024-12-14T10:30:45.123Z",
+    "scan_duration_ms": 2847,
+    "hostname": "WORKSTATION-01",
+    "os_version": "Windows 11 Pro 22H2 (Build 22621.2715)",
+    "cli_version": "1.0.0"
+  },
+  "artifacts": {
+    "system_info": {
+      "uptime_secs": 86400,
+      "logged_on_users": [
+        {
+          "username": "john.doe",
+          "domain": "CORPORATE",
+          "logon_time": "2024-12-14T08:15:30.000Z",
+          "session_id": 1,
+          "session_type": "Interactive"
+        },
+        {
+          "username": "admin",
+          "domain": "WORKSTATION-01",
+          "logon_time": "2024-12-14T09:45:12.000Z",
+          "session_id": 2,
+          "session_type": "RemoteInteractive"
+        }
+      ],
+      "hostname": "WORKSTATION-01",
+      "os_version": "Windows 11 Pro 22H2 (Build 22621.2715)",
+      "architecture": "x64",
+      "total_memory": 17179869184,
+      "available_memory": 8589934592
+    },
+    "running_processes": [
+      {
+        "pid": 4,
+        "parent_pid": 0,
+        "name": "System",
+        "command_line": "",
+        "executable_path": "",
+        "sha256_hash": null,
+        "start_time": "2024-12-13T10:30:45.000Z",
+        "memory_usage": 2097152,
+        "cpu_usage": 0.1,
+        "loaded_dlls": []
+      },
+      {
+        "pid": 1234,
+        "parent_pid": 856,
+        "name": "notepad.exe",
+        "command_line": "\"C:\\Windows\\System32\\notepad.exe\" C:\\Users\\john.doe\\Documents\\notes.txt",
+        "executable_path": "C:\\Windows\\System32\\notepad.exe",
+        "sha256_hash": "a1b2c3d4e5f6789012345678901234567890abcdef1234567890abcdef123456",
+        "start_time": "2024-12-14T10:25:30.000Z",
+        "memory_usage": 8388608,
+        "cpu_usage": 0.0,
+        "loaded_dlls": [
+          {
+            "name": "kernel32.dll",
+            "path": "C:\\Windows\\System32\\kernel32.dll",
+            "version": "10.0.22621.2715"
+          },
+          {
+            "name": "user32.dll",
+            "path": "C:\\Windows\\System32\\user32.dll",
+            "version": "10.0.22621.2715"
+          }
+        ]
+      },
+      {
+        "pid": 2468,
+        "parent_pid": 856,
+        "name": "chrome.exe",
+        "command_line": "\"C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe\" --type=renderer",
+        "executable_path": "C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe",
+        "sha256_hash": "b2c3d4e5f6789012345678901234567890abcdef1234567890abcdef1234567",
+        "start_time": "2024-12-14T09:15:45.000Z",
+        "memory_usage": 134217728,
+        "cpu_usage": 2.5,
+        "loaded_dlls": [
+          {
+            "name": "chrome.dll",
+            "path": "C:\\Program Files\\Google\\Chrome\\Application\\chrome.dll",
+            "version": "120.0.6099.109"
+          }
+        ]
+      }
+    ],
+    "network_connections": [
+      {
+        "protocol": "TCP",
+        "local_address": "192.168.1.100:49152",
+        "remote_address": "142.250.191.14:443",
+        "state": "ESTABLISHED",
+        "owning_pid": 2468
+      },
+      {
+        "protocol": "TCP",
+        "local_address": "0.0.0.0:135",
+        "remote_address": "0.0.0.0:0",
+        "state": "LISTENING",
+        "owning_pid": 856
+      },
+      {
+        "protocol": "UDP",
+        "local_address": "192.168.1.100:53",
+        "remote_address": "8.8.8.8:53",
+        "state": "ESTABLISHED",
+        "owning_pid": 1024
+      }
+    ],
+    "persistence_mechanisms": [
+      {
+        "type": "Registry Run Key",
+        "name": "SecurityHealth",
+        "command": "C:\\Windows\\System32\\SecurityHealthSystray.exe",
+        "source": "HKLM\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Run",
+        "enabled": true,
+        "last_modified": "2024-12-01T15:30:00.000Z"
+      },
+      {
+        "type": "Scheduled Task",
+        "name": "GoogleUpdateTaskMachineUA",
+        "command": "C:\\Program Files (x86)\\Google\\Update\\GoogleUpdate.exe /ua /installsource scheduler",
+        "source": "\\Microsoft\\Windows\\Task Scheduler\\GoogleUpdateTaskMachineUA",
+        "enabled": true,
+        "last_modified": "2024-11-15T10:45:00.000Z"
+      },
+      {
+        "type": "Service",
+        "name": "Windows Defender Antivirus Service",
+        "command": "C:\\ProgramData\\Microsoft\\Windows Defender\\Platform\\4.18.23110.3-0\\MsMpEng.exe",
+        "source": "WinDefend",
+        "enabled": true,
+        "last_modified": "2024-12-10T08:20:00.000Z"
+      }
+    ],
+    "event_logs": {
+      "security": [
+        {
+          "event_id": 4624,
+          "level": "Information",
+          "timestamp": "2024-12-14T08:15:30.000Z",
+          "source": "Microsoft-Windows-Security-Auditing",
+          "message": "An account was successfully logged on. Subject: Security ID: S-1-0-0 Account Name: - Account Domain: - Logon ID: 0x0 Logon Information: Logon Type: 2 Restricted Admin Mode: - Virtual Account: No Elevated Token: No",
+          "user": "john.doe",
+          "computer": "WORKSTATION-01"
+        },
+        {
+          "event_id": 4648,
+          "level": "Information",
+          "timestamp": "2024-12-14T09:45:12.000Z",
+          "source": "Microsoft-Windows-Security-Auditing",
+          "message": "A logon was attempted using explicit credentials. Subject: Security ID: S-1-5-21-1234567890-1234567890-1234567890-1001 Account Name: john.doe Account Domain: CORPORATE",
+          "user": "admin",
+          "computer": "WORKSTATION-01"
+        }
+      ],
+      "system": [
+        {
+          "event_id": 7036,
+          "level": "Information",
+          "timestamp": "2024-12-14T10:00:00.000Z",
+          "source": "Service Control Manager",
+          "message": "The Windows Defender Antivirus Service service entered the running state.",
+          "user": null,
+          "computer": "WORKSTATION-01"
+        },
+        {
+          "event_id": 1074,
+          "level": "Information",
+          "timestamp": "2024-12-13T18:30:00.000Z",
+          "source": "User32",
+          "message": "The process C:\\Windows\\system32\\winlogon.exe (WORKSTATION-01) has initiated the restart of computer WORKSTATION-01 on behalf of user CORPORATE\\john.doe for the following reason: Operating System: Recovery (Planned)",
+          "user": "CORPORATE\\john.doe",
+          "computer": "WORKSTATION-01"
+        }
+      ],
+      "application": [
+        {
+          "event_id": 1000,
+          "level": "Error",
+          "timestamp": "2024-12-14T09:30:15.000Z",
+          "source": "Application Error",
+          "message": "Faulting application name: example.exe, version: 1.0.0.0, time stamp: 0x12345678 Faulting module name: kernel32.dll, version: 10.0.22621.2715, time stamp: 0x87654321",
+          "user": "john.doe",
+          "computer": "WORKSTATION-01"
+        }
+      ]
+    },
+    "execution_evidence": {
+      "prefetch_files": [
+        {
+          "filename": "NOTEPAD.EXE-D8414F97.pf",
+          "executable_name": "NOTEPAD.EXE",
+          "run_count": 15,
+          "last_run_time": "2024-12-14T10:25:30.000Z",
+          "file_paths": [
+            "C:\\Windows\\System32\\notepad.exe",
+            "C:\\Windows\\System32\\kernel32.dll",
+            "C:\\Windows\\System32\\user32.dll",
+            "C:\\Users\\john.doe\\Documents\\notes.txt"
+          ],
+          "prefetch_hash": "D8414F97"
+        },
+        {
+          "filename": "CHROME.EXE-A1B2C3D4.pf",
+          "executable_name": "CHROME.EXE",
+          "run_count": 127,
+          "last_run_time": "2024-12-14T09:15:45.000Z",
+          "file_paths": [
+            "C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe",
+            "C:\\Program Files\\Google\\Chrome\\Application\\chrome.dll",
+            "C:\\Windows\\System32\\kernel32.dll"
+          ],
+          "prefetch_hash": "A1B2C3D4"
+        }
+      ],
+      "shimcache_entries": [
+        {
+          "path": "C:\\Windows\\System32\\notepad.exe",
+          "last_modified": "2024-11-20T14:30:00.000Z",
+          "file_size": 202752,
+          "executed": true
+        },
+        {
+          "path": "C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe",
+          "last_modified": "2024-12-01T10:15:00.000Z",
+          "file_size": 2654208,
+          "executed": true
+        },
+        {
+          "path": "C:\\Users\\john.doe\\Downloads\\suspicious.exe",
+          "last_modified": "2024-12-14T08:45:00.000Z",
+          "file_size": 1048576,
+          "executed": false
+        }
+      ]
+    }
+  },
+  "collection_log": [
+    {
+      "timestamp": "2024-12-14T10:30:45.123Z",
+      "level": "INFO",
+      "message": "Starting TriageIR collection",
+      "module": "main"
+    },
+    {
+      "timestamp": "2024-12-14T10:30:45.234Z",
+      "level": "INFO",
+      "message": "Collecting system information",
+      "module": "system_info"
+    },
+    {
+      "timestamp": "2024-12-14T10:30:45.456Z",
+      "level": "INFO",
+      "message": "Found 2 logged-on users",
+      "module": "system_info"
+    },
+    {
+      "timestamp": "2024-12-14T10:30:45.567Z",
+      "level": "INFO",
+      "message": "Collecting running processes",
+      "module": "processes"
+    },
+    {
+      "timestamp": "2024-12-14T10:30:46.123Z",
+      "level": "INFO",
+      "message": "Enumerated 156 processes",
+      "module": "processes"
+    },
+    {
+      "timestamp": "2024-12-14T10:30:46.234Z",
+      "level": "WARN",
+      "message": "Could not access process 1234 for hash calculation: Access denied",
+      "module": "processes"
+    },
+    {
+      "timestamp": "2024-12-14T10:30:46.345Z",
+      "level": "INFO",
+      "message": "Collecting network connections",
+      "module": "network"
+    },
+    {
+      "timestamp": "2024-12-14T10:30:46.456Z",
+      "level": "INFO",
+      "message": "Found 23 network connections",
+      "module": "network"
+    },
+    {
+      "timestamp": "2024-12-14T10:30:46.567Z",
+      "level": "INFO",
+      "message": "Collecting persistence mechanisms",
+      "module": "persistence"
+    },
+    {
+      "timestamp": "2024-12-14T10:30:47.123Z",
+      "level": "INFO",
+      "message": "Found 15 persistence mechanisms",
+      "module": "persistence"
+    },
+    {
+      "timestamp": "2024-12-14T10:30:47.234Z",
+      "level": "INFO",
+      "message": "Collecting event logs",
+      "module": "event_logs"
+    },
+    {
+      "timestamp": "2024-12-14T10:30:47.890Z",
+      "level": "INFO",
+      "message": "Collected 1000 event log entries",
+      "module": "event_logs"
+    },
+    {
+      "timestamp": "2024-12-14T10:30:47.901Z",
+      "level": "INFO",
+      "message": "Collecting execution evidence",
+      "module": "execution"
+    },
+    {
+      "timestamp": "2024-12-14T10:30:48.012Z",
+      "level": "INFO",
+      "message": "Found 45 prefetch files",
+      "module": "prefetch"
+    },
+    {
+      "timestamp": "2024-12-14T10:30:48.123Z",
+      "level": "INFO",
+      "message": "Found 127 shimcache entries",
+      "module": "shimcache"
+    },
+    {
+      "timestamp": "2024-12-14T10:30:48.234Z",
+      "level": "INFO",
+      "message": "Collection completed successfully",
+      "module": "main"
+    }
+  ]
+}

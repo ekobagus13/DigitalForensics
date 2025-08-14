@@ -18,67 +18,111 @@ mod forensic_types;
 #[cfg(test)]
 mod integration_tests;
 
+#[cfg(test)]
+mod comprehensive_tests;
+
+#[cfg(test)]
+mod performance_tests;
+
 use logger::{Logger, error_handling::{ForensicResult, ForensicError, handle_error_gracefully}};
 use types::{ScanResults, LogEntry};
 
 fn main() {
     let matches = Command::new("triageir-cli")
-        .version("0.1.0")
-        .about("Digital Forensics Triage Tool")
+        .version(env!("CARGO_PKG_VERSION"))
+        .about("Digital Forensics Triage Tool for Windows Systems")
+        .long_about("TriageIR-CLI is a forensically sound command-line tool for rapid evidence collection from live Windows systems. It collects system information, running processes, network connections, persistence mechanisms, event logs, and execution evidence.")
         .arg(
             Arg::new("output")
                 .short('o')
                 .long("output")
                 .value_name("FILE")
-                .help("Output file for results (JSON format)")
+                .help("Output file for results (default: stdout)")
         )
         .arg(
             Arg::new("verbose")
                 .short('v')
                 .long("verbose")
                 .action(clap::ArgAction::SetTrue)
-                .help("Enable verbose output")
+                .help("Enable verbose output with progress information")
         )
         .arg(
             Arg::new("format")
                 .long("format")
                 .value_name("FORMAT")
                 .default_value("json")
-                .help("Output format (json)")
+                .help("Output format (currently only 'json' is supported)")
+                .value_parser(["json"])
+        )
+        .arg(
+            Arg::new("password")
+                .long("password")
+                .value_name("PASSWORD")
+                .help("Password for encrypted output (future feature)")
         )
         .get_matches();
 
     let verbose = matches.get_flag("verbose");
+    let output_file = matches.get_one::<String>("output");
+    let format = matches.get_one::<String>("format").unwrap();
+    let _password = matches.get_one::<String>("password"); // For future use
+    
+    // Validate format argument
+    if format != "json" {
+        eprintln!("Error: Only 'json' format is currently supported");
+        std::process::exit(1);
+    }
+    
     let logger = Arc::new(Logger::new(verbose));
+    let start_time = std::time::Instant::now();
     
     // Initialize scan results with proper error handling
     let hostname = std::env::var("COMPUTERNAME").unwrap_or_else(|_| "Unknown".to_string());
     let os_version = System::os_version().unwrap_or_else(|| "Unknown".to_string());
-    let mut scan_results = ScanResults::new(hostname.clone(), os_version);
+    let mut scan_results = ScanResults::new(hostname.clone(), os_version.clone());
     
-    logger.info("TriageIR CLI v0.1.0 - Digital Forensics Triage Tool started");
+    let cli_version = env!("CARGO_PKG_VERSION");
+    logger.info(&format!("TriageIR CLI v{} - Digital Forensics Triage Tool started", cli_version));
     logger.info(&format!("Target system: {}", hostname));
+    logger.info(&format!("OS Version: {}", os_version));
     logger.info(&format!("Current user: {}", std::env::var("USERNAME").unwrap_or_else(|_| "Unknown".to_string())));
     logger.info(&format!("Verbose mode: {}", verbose));
+    logger.info(&format!("Output format: {}", format));
+    if let Some(output) = output_file {
+        logger.info(&format!("Output file: {}", output));
+    } else {
+        logger.info("Output: stdout");
+    }
 
     if verbose {
-        println!("TriageIR CLI v0.1.0 - Digital Forensics Triage Tool");
+        println!("TriageIR CLI v{} - Digital Forensics Triage Tool", cli_version);
         println!("==================================================");
         println!("Starting forensic data collection...");
         println!("Target system: {}", hostname);
+        println!("OS Version: {}", os_version);
         println!("Current user: {}", std::env::var("USERNAME").unwrap_or_else(|_| "Unknown".to_string()));
+        println!("Scan ID: {}", scan_results.scan_metadata.scan_id);
+        println!();
     }
 
-    let start_time = std::time::Instant::now();
-
     // Initialize system information collector with error handling
-    let system_info = match collect_system_info_safe(&logger) {
+    if verbose {
+        println!("🔍 Collecting system information...");
+    }
+    let system_info_result = collect_system_info_safe(&logger);
+    let system_info = match &system_info_result {
         Some(info) => {
             logger.info("System information collected successfully");
-            info
+            if verbose {
+                println!("✓ System information collected");
+            }
+            info.clone()
         }
         None => {
             logger.error("Failed to collect system information, using defaults");
+            if verbose {
+                println!("⚠ System information collection failed, using defaults");
+            }
             json!({
                 "hostname": hostname,
                 "os_name": "Unknown",
@@ -89,12 +133,16 @@ fn main() {
                 "last_boot_time": chrono::Utc::now().to_rfc3339(),
                 "total_memory": 0,
                 "used_memory": 0,
-                "cpu_count": 0
+                "cpu_count": 0,
+                "logged_on_users": []
             })
         }
     };
     
     // Collect running processes with comprehensive error handling
+    if verbose {
+        println!("🔍 Enumerating running processes...");
+    }
     logger.info("Starting process enumeration");
     let (processes_data, process_logs) = processes::collect_processes();
     
@@ -127,8 +175,14 @@ fn main() {
     }).collect::<Vec<_>>();
     
     logger.info(&format!("Process enumeration completed: {} processes collected", processes.len()));
+    if verbose {
+        println!("✓ Process enumeration completed ({} processes)", processes.len());
+    }
     
     // Collect network connections with error handling
+    if verbose {
+        println!("🔍 Analyzing network connections...");
+    }
     logger.info("Starting network connection enumeration");
     let (network_connections_data, network_logs) = network::collect_network_connections();
     
@@ -152,8 +206,14 @@ fn main() {
     }).collect::<Vec<_>>();
     
     logger.info(&format!("Network enumeration completed: {} connections collected", network_connections.len()));
+    if verbose {
+        println!("✓ Network analysis completed ({} connections)", network_connections.len());
+    }
     
     // Collect persistence mechanisms with error handling
+    if verbose {
+        println!("🔍 Detecting persistence mechanisms...");
+    }
     logger.info("Starting persistence mechanism detection");
     let (persistence_mechanisms_data, persistence_logs) = persistence::collect_persistence_mechanisms();
     
@@ -175,8 +235,14 @@ fn main() {
     }).collect::<Vec<_>>();
     
     logger.info(&format!("Persistence detection completed: {} mechanisms found", persistence_mechanisms.len()));
+    if verbose {
+        println!("✓ Persistence detection completed ({} mechanisms)", persistence_mechanisms.len());
+    }
     
     // Collect event logs with error handling
+    if verbose {
+        println!("🔍 Collecting event logs...");
+    }
     logger.info("Starting event log collection");
     let (event_logs_data, event_logs_collection_logs) = event_logs::collect_event_logs();
     
@@ -217,9 +283,20 @@ fn main() {
     });
     
     logger.info(&format!("Event log collection completed: {} entries collected", total_event_entries));
+    if verbose {
+        println!("✓ Event log collection completed ({} entries)", total_event_entries);
+    }
     
     // Collect execution evidence with error handling
+    if verbose {
+        println!("🔍 Collecting execution evidence...");
+    }
     logger.info("Starting execution evidence collection");
+    
+    // Collect Prefetch files
+    if verbose {
+        println!("  📁 Analyzing Prefetch files...");
+    }
     let (prefetch_files_data, prefetch_logs) = prefetch::collect_prefetch_files();
     
     // Convert forensic audit entries to log entries
@@ -253,7 +330,14 @@ fn main() {
     }).collect::<Vec<_>>();
     
     logger.info(&format!("Prefetch analysis completed: {} files analyzed", prefetch_files.len()));
+    if verbose {
+        println!("  ✓ Prefetch analysis completed ({} files)", prefetch_files.len());
+    }
     
+    // Collect Shimcache entries
+    if verbose {
+        println!("  📁 Analyzing Shimcache entries...");
+    }
     let (shimcache_entries_data, shimcache_logs) = shimcache::collect_shimcache_entries();
     
     // Convert forensic audit entries to log entries
@@ -275,6 +359,10 @@ fn main() {
     }).collect::<Vec<_>>();
     
     logger.info(&format!("Shimcache analysis completed: {} entries collected", shimcache_entries.len()));
+    if verbose {
+        println!("  ✓ Shimcache analysis completed ({} entries)", shimcache_entries.len());
+        println!("✓ Execution evidence collection completed");
+    }
     
     let total_artifacts = processes.len() + network_connections.len() + persistence_mechanisms.len() + total_event_entries + prefetch_files.len() + shimcache_entries.len();
     
@@ -288,6 +376,9 @@ fn main() {
         log_summary.total_count, log_summary.error_count, log_summary.warn_count, log_summary.success_rate()));
     
     if verbose {
+        println!();
+        println!("📊 Collection Summary:");
+        println!("====================");
         println!("✓ System information collected");
         println!("✓ Running processes enumerated ({} processes)", processes.len());
         println!("✓ Network connections analyzed ({} connections)", network_connections.len());
@@ -295,6 +386,7 @@ fn main() {
         println!("✓ Event logs collected ({} entries)", total_event_entries);
         println!("✓ Prefetch files analyzed ({} files)", prefetch_files.len());
         println!("✓ Shimcache entries collected ({} entries)", shimcache_entries.len());
+        println!();
         
         if log_summary.has_errors() {
             println!("⚠ {} errors encountered during collection", log_summary.error_count);
@@ -302,6 +394,10 @@ fn main() {
         if log_summary.has_warnings() {
             println!("⚠ {} warnings generated during collection", log_summary.warn_count);
         }
+        
+        println!("Scan completed in {:.2} seconds", duration.as_secs_f64());
+        println!("Total artifacts collected: {}", total_artifacts);
+        println!();
     }
     
     // Finalize scan results with proper metadata
@@ -312,21 +408,15 @@ fn main() {
         scan_results.add_log(entry);
     }
     
-    // Update scan results with collected artifacts
-    scan_results.artifacts.system_info.uptime_secs = 0; // Will be updated by system_info collection
-    
-    // Create comprehensive scan results JSON
+    // Create comprehensive scan results JSON according to design document schema
     let final_scan_results = json!({
         "scan_metadata": {
             "scan_id": scan_results.scan_metadata.scan_id,
             "scan_start_utc": scan_results.scan_metadata.scan_start_utc,
             "scan_duration_ms": duration.as_millis() as u64,
-            "scan_duration_seconds": duration.as_secs_f64(),
-            "timestamp": chrono::Utc::now().to_rfc3339(),
             "hostname": hostname,
             "os_version": scan_results.scan_metadata.os_version,
             "cli_version": scan_results.scan_metadata.cli_version,
-            "version": scan_results.scan_metadata.cli_version,
             "total_artifacts": total_artifacts,
             "collection_summary": {
                 "total_logs": log_summary.total_count,
@@ -356,9 +446,13 @@ fn main() {
     });
 
     // Output results with comprehensive error handling
+    if verbose {
+        println!("📝 Generating output...");
+    }
+    
     match serde_json::to_string_pretty(&final_scan_results) {
         Ok(json_output) => {
-            if let Some(output_file) = matches.get_one::<String>("output") {
+            if let Some(output_file) = output_file {
                 match write_output_file(output_file, &json_output, &logger) {
                     Ok(_) => {
                         logger.info(&format!("Results written to file: {}", output_file));
@@ -374,6 +468,7 @@ fn main() {
                     }
                 }
             } else {
+                // Output to stdout
                 println!("{}", json_output);
             }
         }
@@ -384,18 +479,22 @@ fn main() {
         }
     }
 
-    // Final status reporting
-    if verbose {
-        println!("\nScan completed in {:.2} seconds", duration.as_secs_f64());
-        println!("Total artifacts collected: {}", total_artifacts);
-        println!("Collection logs: {} entries ({} errors, {} warnings)", 
-            log_summary.total_count, log_summary.error_count, log_summary.warn_count);
-    } else {
-        println!("\nScan completed successfully in {:.2} seconds", duration.as_secs_f64());
-        println!("Total artifacts collected: {}", total_artifacts);
-        if log_summary.has_errors() || log_summary.has_warnings() {
-            println!("Collection completed with {} errors and {} warnings", 
-                log_summary.error_count, log_summary.warn_count);
+    // Final status reporting (only if not outputting to stdout)
+    if output_file.is_some() {
+        if verbose {
+            println!();
+            println!("🎉 Scan completed successfully!");
+            println!("Duration: {:.2} seconds", duration.as_secs_f64());
+            println!("Total artifacts: {}", total_artifacts);
+            println!("Collection logs: {} entries ({} errors, {} warnings)", 
+                log_summary.total_count, log_summary.error_count, log_summary.warn_count);
+        } else {
+            eprintln!("Scan completed in {:.2} seconds", duration.as_secs_f64());
+            eprintln!("Total artifacts collected: {}", total_artifacts);
+            if log_summary.has_errors() || log_summary.has_warnings() {
+                eprintln!("Collection completed with {} errors and {} warnings", 
+                    log_summary.error_count, log_summary.warn_count);
+            }
         }
     }
     
@@ -445,12 +544,13 @@ fn collect_system_info_safe(logger: &Logger) -> Option<serde_json::Value> {
 fn write_output_file(output_file: &str, content: &str, logger: &Logger) -> ForensicResult<()> {
     logger.info(&format!("Writing output to file: {}", output_file));
     
-    // Validate file path
+    // Validate file path and create parent directories if needed
     let path = std::path::Path::new(output_file);
     if let Some(parent) = path.parent() {
-        if !parent.exists() {
-            logger.warn(&format!("Parent directory does not exist: {:?}", parent));
-            return Err(ForensicError::not_found("Parent directory does not exist"));
+        if !parent.as_os_str().is_empty() && !parent.exists() {
+            logger.info(&format!("Creating parent directory: {:?}", parent));
+            std::fs::create_dir_all(parent)
+                .map_err(|e| ForensicError::system_api_error(&format!("Failed to create parent directory: {}", e)))?;
         }
     }
     

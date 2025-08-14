@@ -1,0 +1,25 @@
+TriageIR-CLI is a forensically sound command-line tool for rapid evidence collection from live Windows systems. It collects system information, running processes, network connections, persistence mechanisms, event logs, and execution evidence.
+
+Usage: triageir-cli.exe [OPTIONS]
+
+Options:
+  -o, --output <FILE>
+          Output file for results (default: stdout)
+
+  -v, --verbose
+          Enable verbose output with progress information
+
+      --format <FORMAT>
+          Output format (currently only 'json' is supported)
+          
+          [default: json]
+          [possible values: json]
+
+      --password <PASSWORD>
+          Password for encrypted output (future feature)
+
+  -h, --help
+          Print help (see a summary with '-h')
+
+  -V, --version
+          Print version
