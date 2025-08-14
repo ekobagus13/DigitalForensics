@@ -23,7 +23,7 @@ npm run dev
 ```
 TriageIR/
 ├── TriageIR-CLI/           # Rust CLI Engine
-│   ├── src/
+│   ├── src/                # Source code
 │   │   ├── main.rs         # Main application entry
 │   │   ├── system_info.rs  # System information collection
 │   │   ├── processes.rs    # Process enumeration
@@ -31,15 +31,25 @@ TriageIR/
 │   │   ├── persistence.rs  # Persistence mechanisms
 │   │   ├── event_logs.rs   # Windows event logs
 │   │   └── types.rs        # Data structures
-│   ├── Cargo.toml          # Dependencies
+│   ├── examples/           # Usage examples
+│   ├── Cargo.toml          # Dependencies and metadata
 │   └── README.md           # CLI documentation
 ├── TriageIR-GUI/           # Electron GUI
-│   ├── src/
+│   ├── src/                # Source code
 │   │   ├── main.js         # Electron main process
 │   │   └── renderer/       # GUI interface
-│   ├── package.json        # Dependencies
+│   ├── test/               # GUI tests
+│   ├── package.json        # Dependencies and scripts
 │   └── README.md           # GUI documentation
-└── .kiro/specs/            # Project specifications
+├── docs/                   # Complete documentation
+│   ├── USER_MANUAL.md      # User guide
+│   ├── DEVELOPER_GUIDE.md  # Developer documentation
+│   ├── API_REFERENCE.md    # API documentation
+│   └── INSTALLATION_GUIDE.md # Installation instructions
+├── scripts/                # Build and deployment scripts
+├── test-scripts/           # Testing and validation scripts
+├── examples/               # Usage examples and analysis scripts
+└── schemas/                # JSON schemas for validation
 ```
 
 ## 🔍 Features
