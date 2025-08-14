@@ -1128,8 +1128,158 @@ fn create_secure_file(path: &Path) -> std::io::Result<File> {
 }
 ```
 
+## Deployment and Distribution
+
+### Creating Release Builds
+
+#### CLI Release Build
+```bash
+# Optimized release build
+cargo build --release
+
+# With specific target
+cargo build --release --target x86_64-pc-windows-msvc
+
+# Professional edition with all features
+cargo build --release --features professional
+```
+
+#### GUI Release Build
+```bash
+# Production build
+npm run build
+
+# Create installer
+npm run dist
+
+# Portable build
+npm run build:portable
+```
+
+### Continuous Integration
+
+#### GitHub Actions Workflow
+```yaml
+name: Build and Test
+on: [push, pull_request]
+
+jobs:
+  test:
+    runs-on: windows-latest
+    steps:
+    - uses: actions/checkout@v3
+    - uses: actions-rs/toolchain@v1
+      with:
+        toolchain: stable
+    - name: Run CLI tests
+      run: cargo test --manifest-path TriageIR-CLI/Cargo.toml
+    - name: Run GUI tests
+      run: |
+        cd TriageIR-GUI
+        npm install
+        npm test
+```
+
+### Code Signing
+
+#### Windows Code Signing
+```bash
+# Sign CLI executable
+signtool sign /f certificate.pfx /p password /t http://timestamp.digicert.com target/release/triageir-cli.exe
+
+# Sign GUI installer
+signtool sign /f certificate.pfx /p password /t http://timestamp.digicert.com dist/TriageIR-Setup.exe
+```
+
+### Distribution Channels
+
+#### GitHub Releases
+1. Create release tag: `git tag v1.0.0`
+2. Push tag: `git push origin v1.0.0`
+3. Upload artifacts to GitHub Releases
+4. Include checksums and signatures
+
+#### Package Managers
+```bash
+# Chocolatey package
+choco pack triageir.nuspec
+
+# Scoop manifest
+scoop bucket add triageir https://github.com/triageir/scoop-bucket
+```
+
+## Appendix A: Build Troubleshooting
+
+### Common Build Issues
+
+#### Rust Build Errors
+- **Link errors**: Install Visual Studio Build Tools
+- **Missing dependencies**: Run `cargo update`
+- **Target not found**: Install with `rustup target add`
+
+#### Node.js Build Errors
+- **Native module errors**: Rebuild with `npm rebuild`
+- **Memory issues**: Increase Node.js memory limit
+- **Permission errors**: Run as administrator
+
+### Performance Profiling
+
+#### CLI Profiling
+```bash
+# CPU profiling
+cargo build --release
+perf record --call-graph=dwarf ./target/release/triageir-cli
+perf report
+
+# Memory profiling
+valgrind --tool=massif ./target/release/triageir-cli
+```
+
+#### GUI Profiling
+```javascript
+// Performance monitoring
+const { performance } = require('perf_hooks');
+
+const start = performance.now();
+// ... operation
+const end = performance.now();
+console.log(`Operation took ${end - start} milliseconds`);
+```
+
+## Appendix B: Security Hardening
+
+### CLI Security
+```rust
+// Secure memory handling
+use zeroize::Zeroize;
+
+#[derive(Zeroize)]
+struct SensitiveData {
+    password: String,
+}
+
+impl Drop for SensitiveData {
+    fn drop(&mut self) {
+        self.zeroize();
+    }
+}
+```
+
+### GUI Security
+```javascript
+// Content Security Policy
+app.on('web-contents-created', (event, contents) => {
+    contents.on('will-navigate', (event, navigationUrl) => {
+        const parsedUrl = new URL(navigationUrl);
+        if (parsedUrl.origin !== 'file://') {
+            event.preventDefault();
+        }
+    });
+});
+```
+
 ---
 
-**Document Version**: 1.0  
+**Document Version**: 1.1  
 **Last Updated**: December 2024  
 **Applies to**: TriageIR v1.0.0 and later

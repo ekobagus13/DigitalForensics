@@ -10,12 +10,14 @@ This document provides practical examples of using TriageIR for various digital 
 4. [System Monitoring Examples](#system-monitoring-examples)
 5. [Automation and Scripting](#automation-and-scripting)
 6. [Advanced Use Cases](#advanced-use-cases)
+7. [Integration Examples](#integration-examples)
+8. [Troubleshooting Examples](#troubleshooting-examples)
 
 ## Basic Usage Examples
 
 ### Quick System Triage
 
-```bash
+```cmd
 # Basic scan with all default settings
 triageir-cli.exe --output basic_triage.json --verbose
 
@@ -24,11 +26,14 @@ triageir-cli.exe --skip-hashes --skip-events --output quick_assessment.json
 
 # Comprehensive scan with maximum detail
 triageir-cli.exe --max-events 10000 --verbose --output comprehensive_scan.json
+
+# Minimal resource usage scan
+triageir-cli.exe --skip-hashes --max-events 500 --output minimal_scan.json
 ```
 
 ### Targeted Data Collection
 
-```bash
+```cmd
 # Collect only running processes and network connections
 triageir-cli.exe --only processes,network --output network_analysis.json
 
@@ -40,6 +45,22 @@ triageir-cli.exe --only execution,processes --output execution_timeline.json
 
 # System information and logged-on users
 triageir-cli.exe --only system --output system_status.json
+
+# Event logs only (security focus)
+triageir-cli.exe --only events --max-events 2000 --output security_events.json
+```
+
+### Output Management
+
+```cmd
+# Save to specific directory with timestamp
+triageir-cli.exe --output "C:\Evidence\scan_%DATE:~-4,4%%DATE:~-10,2%%DATE:~-7,2%_%TIME:~0,2%%TIME:~3,2%.json"
+
+# Pipe output to analysis tool
+triageir-cli.exe | python analyze_results.py
+
+# Save with case number
+triageir-cli.exe --output "CASE-2024-001_initial_triage.json" --verbose
 ```
 
 ## Incident Response Scenarios
@@ -47,6 +68,582 @@ triageir-cli.exe --only system --output system_status.json
 ### Scenario 1: Suspected Malware Infection
 
 **Objective**: Quickly identify potentially malicious processes and network connections
+
+**Command**:
+```cmd
+triageir-cli.exe --only processes,network,persistence --skip-hashes --output malware_triage.json --verbose
+```
+
+**Analysis Focus**:
+- Processes with unusual names or locations
+- Network connections to external IPs
+- Unknown persistence mechanisms
+- Processes without digital signatures
+
+**Follow-up Actions**:
+```cmd
+# If suspicious processes found, get detailed execution evidence
+triageir-cli.exe --only execution --output execution_evidence.json
+
+# Get comprehensive event logs for timeline
+triageir-cli.exe --only events --max-events 5000 --output incident_events.json
+```
+
+### Scenario 2: Data Exfiltration Investigation
+
+**Objective**: Identify processes with network activity and potential data theft
+
+**Command**:
+```cmd
+triageir-cli.exe --only processes,network --output data_exfil_check.json --verbose
+```
+
+**Analysis Script** (PowerShell):
+```powershell
+# Load and analyze results
+$results = Get-Content "data_exfil_check.json" | ConvertFrom-Json
+
+# Find processes with external network connections
+$external_connections = $results.artifacts.network_connections | Where-Object {
+    $_.remote_address -notmatch "^(127\.|192\.168\.|10\.|172\.(1[6-9]|2[0-9]|3[01])\.|::1|fe80:)"
+}
+
+# Map to processes
+foreach ($conn in $external_connections) {
+    $process = $results.artifacts.running_processes | Where-Object { $_.pid -eq $conn.owning_pid }
+    Write-Host "External connection: $($conn.remote_address) by $($process.name) ($($process.pid))"
+}
+```
+
+### Scenario 3: Insider Threat Assessment
+
+**Objective**: Monitor user activity and system changes
+
+**Command**:
+```cmd
+triageir-cli.exe --only system,events,execution --max-events 3000 --output insider_threat.json --verbose
+```
+
+**Key Indicators**:
+- Unusual logon times or patterns
+- Execution of administrative tools
+- Access to sensitive directories
+- USB device usage events
+
+### Scenario 4: Ransomware Response
+
+**Objective**: Rapid assessment of ransomware impact
+
+**Command**:
+```cmd
+triageir-cli.exe --skip-events --output ransomware_assessment.json --verbose
+```
+
+**Immediate Analysis**:
+- Identify encryption processes
+- Check for ransom note processes
+- Assess system persistence changes
+- Document current system state
+
+## Forensic Analysis Workflows
+
+### Complete Evidence Collection
+
+**Phase 1: Initial Triage**
+```cmd
+triageir-cli.exe --only system,processes --skip-hashes --output phase1_triage.json --verbose
+```
+
+**Phase 2: Detailed Analysis**
+```cmd
+triageir-cli.exe --max-events 10000 --output phase2_detailed.json --verbose
+```
+
+**Phase 3: Execution Timeline**
+```cmd
+triageir-cli.exe --only execution,events --max-events 5000 --output phase3_timeline.json --verbose
+```
+
+### Memory Analysis Preparation
+
+```cmd
+# Collect process information for memory analysis correlation
+triageir-cli.exe --only processes --output memory_correlation.json --verbose
+
+# Get network connections for memory analysis context
+triageir-cli.exe --only network --output network_context.json
+```
+
+### Timeline Analysis
+
+```cmd
+# Collect execution evidence with events for timeline
+triageir-cli.exe --only execution,events --max-events 8000 --output timeline_data.json --verbose
+```
+
+**Timeline Analysis Script** (Python):
+```python
+import json
+from datetime import datetime
+
+# Load results
+with open('timeline_data.json') as f:
+    data = json.load(f)
+
+# Create timeline from execution evidence
+timeline = []
+
+# Add prefetch entries
+for pf in data['artifacts']['execution_evidence']['prefetch_files']:
+    timeline.append({
+        'timestamp': pf['last_run_time'],
+        'type': 'Execution',
+        'description': f"Executed: {pf['executable_name']} (count: {pf['run_count']})"
+    })
+
+# Add event log entries
+for event in data['artifacts']['event_logs']['security']:
+    timeline.append({
+        'timestamp': event['timestamp'],
+        'type': 'Event',
+        'description': f"Event {event['event_id']}: {event['message'][:100]}..."
+    })
+
+# Sort by timestamp
+timeline.sort(key=lambda x: x['timestamp'])
+
+# Output timeline
+for entry in timeline[-20:]:  # Last 20 events
+    print(f"{entry['timestamp']} - {entry['type']}: {entry['description']}")
+```
+
+## System Monitoring Examples
+
+### Daily System Health Check
+
+**Automated Script** (batch):
+```cmd
+@echo off
+set DATE_STAMP=%DATE:~-4,4%%DATE:~-10,2%%DATE:~-7,2%
+triageir-cli.exe --skip-hashes --max-events 1000 --output "daily_check_%DATE_STAMP%.json" --verbose
+
+# Check for changes in process count
+python compare_daily_scans.py
+```
+
+### Baseline Creation
+
+```cmd
+# Create system baseline
+triageir-cli.exe --output baseline_system.json --verbose
+
+# Weekly comparison
+triageir-cli.exe --output weekly_check.json --verbose
+python compare_with_baseline.py baseline_system.json weekly_check.json
+```
+
+### Performance Monitoring
+
+```cmd
+# Monitor system performance impact
+triageir-cli.exe --only system,processes --output performance_check.json --verbose
+```
+
+## Automation and Scripting
+
+### PowerShell Integration
+
+```powershell
+# TriageIR PowerShell wrapper function
+function Invoke-TriageIR {
+    param(
+        [string]$OutputPath = "triageir_$(Get-Date -Format 'yyyyMMdd_HHmmss').json",
+        [string[]]$ArtifactTypes = @(),
+        [switch]$SkipHashes,
+        [int]$MaxEvents = 1000,
+        [switch]$Verbose
+    )
+    
+    $args = @("--output", $OutputPath)
+    
+    if ($ArtifactTypes.Count -gt 0) {
+        $args += "--only", ($ArtifactTypes -join ",")
+    }
+    
+    if ($SkipHashes) { $args += "--skip-hashes" }
+    if ($MaxEvents -ne 1000) { $args += "--max-events", $MaxEvents }
+    if ($Verbose) { $args += "--verbose" }
+    
+    & "triageir-cli.exe" @args
+    
+    if ($LASTEXITCODE -eq 0) {
+        return Get-Content $OutputPath | ConvertFrom-Json
+    } else {
+        throw "TriageIR execution failed with exit code $LASTEXITCODE"
+    }
+}
+
+# Usage examples
+$results = Invoke-TriageIR -ArtifactTypes @("processes", "network") -SkipHashes -Verbose
+$suspicious_processes = $results.artifacts.running_processes | Where-Object { $_.name -match "temp|tmp" }
+```
+
+### Python Integration
+
+```python
+import subprocess
+import json
+import sys
+from datetime import datetime
+
+class TriageIR:
+    def __init__(self, cli_path="triageir-cli.exe"):
+        self.cli_path = cli_path
+    
+    def scan(self, output_file=None, artifact_types=None, skip_hashes=False, 
+             max_events=1000, verbose=False):
+        """Run TriageIR scan and return results"""
+        
+        args = [self.cli_path]
+        
+        if output_file:
+            args.extend(["--output", output_file])
+        
+        if artifact_types:
+            args.extend(["--only", ",".join(artifact_types)])
+        
+        if skip_hashes:
+            args.append("--skip-hashes")
+        
+        if max_events != 1000:
+            args.extend(["--max-events", str(max_events)])
+        
+        if verbose:
+            args.append("--verbose")
+        
+        try:
+            result = subprocess.run(args, capture_output=True, text=True, check=True)
+            
+            if output_file:
+                with open(output_file, 'r') as f:
+                    return json.load(f)
+            else:
+                return json.loads(result.stdout)
+                
+        except subprocess.CalledProcessError as e:
+            print(f"TriageIR failed: {e.stderr}", file=sys.stderr)
+            raise
+
+# Usage examples
+triage = TriageIR()
+
+# Quick malware check
+results = triage.scan(
+    artifact_types=["processes", "network", "persistence"],
+    skip_hashes=True,
+    verbose=True
+)
+
+# Analyze results
+suspicious_processes = [
+    p for p in results['artifacts']['running_processes']
+    if 'temp' in p['executable_path'].lower() or 'appdata' in p['executable_path'].lower()
+]
+
+print(f"Found {len(suspicious_processes)} potentially suspicious processes")
+```
+
+### Scheduled Task Integration
+
+**Windows Task Scheduler XML**:
+```xml
+<?xml version="1.0" encoding="UTF-16"?>
+<Task version="1.2">
+  <Triggers>
+    <CalendarTrigger>
+      <StartBoundary>2024-01-01T02:00:00</StartBoundary>
+      <ScheduleByDay>
+        <DaysInterval>1</DaysInterval>
+      </ScheduleByDay>
+    </CalendarTrigger>
+  </Triggers>
+  <Actions>
+    <Exec>
+      <Command>C:\Program Files\TriageIR\CLI\triageir-cli.exe</Command>
+      <Arguments>--output "C:\Logs\daily_triage.json" --skip-hashes --max-events 1000</Arguments>
+    </Exec>
+  </Actions>
+</Task>
+```
+
+## Advanced Use Cases
+
+### Multi-System Collection
+
+**Network Deployment Script**:
+```cmd
+@echo off
+set SYSTEMS=SERVER01 SERVER02 WORKSTATION01 WORKSTATION02
+
+for %%S in (%SYSTEMS%) do (
+    echo Collecting from %%S...
+    psexec \\%%S -c triageir-cli.exe --output "\\EVIDENCE-SERVER\Collections\%%S_triage.json" --verbose
+)
+```
+
+### SIEM Integration
+
+**Splunk Integration**:
+```python
+import json
+import requests
+
+def send_to_splunk(triageir_results, splunk_url, auth_token):
+    """Send TriageIR results to Splunk"""
+    
+    # Extract key indicators
+    events = []
+    
+    # Process suspicious processes
+    for process in triageir_results['artifacts']['running_processes']:
+        if not process.get('sha256_hash'):  # Unsigned processes
+            events.append({
+                'timestamp': triageir_results['scan_metadata']['scan_start_utc'],
+                'source': 'triageir',
+                'sourcetype': 'triageir:process',
+                'event': {
+                    'type': 'suspicious_process',
+                    'pid': process['pid'],
+                    'name': process['name'],
+                    'path': process['executable_path'],
+                    'command_line': process['command_line']
+                }
+            })
+    
+    # Send to Splunk HEC
+    headers = {
+        'Authorization': f'Splunk {auth_token}',
+        'Content-Type': 'application/json'
+    }
+    
+    for event in events:
+        response = requests.post(f"{splunk_url}/services/collector", 
+                               headers=headers, 
+                               json=event)
+        print(f"Sent event: {response.status_code}")
+```
+
+### Custom Analysis Framework
+
+```python
+class TriageIRAnalyzer:
+    def __init__(self, results_file):
+        with open(results_file) as f:
+            self.results = json.load(f)
+    
+    def find_suspicious_processes(self):
+        """Identify potentially suspicious processes"""
+        suspicious = []
+        
+        for process in self.results['artifacts']['running_processes']:
+            score = 0
+            reasons = []
+            
+            # Check for unsigned executables
+            if not process.get('sha256_hash'):
+                score += 3
+                reasons.append("Unsigned executable")
+            
+            # Check for unusual locations
+            path = process['executable_path'].lower()
+            if any(loc in path for loc in ['temp', 'appdata', 'downloads']):
+                score += 2
+                reasons.append("Unusual location")
+            
+            # Check for suspicious names
+            name = process['name'].lower()
+            if any(sus in name for sus in ['temp', 'tmp', 'update', 'install']):
+                score += 1
+                reasons.append("Suspicious name")
+            
+            if score >= 3:
+                suspicious.append({
+                    'process': process,
+                    'score': score,
+                    'reasons': reasons
+                })
+        
+        return sorted(suspicious, key=lambda x: x['score'], reverse=True)
+    
+    def analyze_network_connections(self):
+        """Analyze network connections for anomalies"""
+        external_connections = []
+        
+        for conn in self.results['artifacts']['network_connections']:
+            remote_ip = conn['remote_address'].split(':')[0]
+            
+            # Check if external (not private IP ranges)
+            if not any(remote_ip.startswith(prefix) for prefix in 
+                      ['127.', '192.168.', '10.', '172.16.', '172.17.', 
+                       '172.18.', '172.19.', '172.20.', '172.21.', '172.22.',
+                       '172.23.', '172.24.', '172.25.', '172.26.', '172.27.',
+                       '172.28.', '172.29.', '172.30.', '172.31.']):
+                
+                # Find owning process
+                process = next((p for p in self.results['artifacts']['running_processes'] 
+                              if p['pid'] == conn['owning_pid']), None)
+                
+                external_connections.append({
+                    'connection': conn,
+                    'process': process
+                })
+        
+        return external_connections
+    
+    def generate_report(self):
+        """Generate analysis report"""
+        report = {
+            'scan_info': self.results['scan_metadata'],
+            'suspicious_processes': self.find_suspicious_processes(),
+            'external_connections': self.analyze_network_connections(),
+            'summary': {
+                'total_processes': len(self.results['artifacts']['running_processes']),
+                'total_connections': len(self.results['artifacts']['network_connections']),
+                'persistence_mechanisms': len(self.results['artifacts']['persistence_mechanisms'])
+            }
+        }
+        
+        return report
+
+# Usage
+analyzer = TriageIRAnalyzer('scan_results.json')
+report = analyzer.generate_report()
+
+print(f"Analysis Report for {report['scan_info']['hostname']}")
+print(f"Suspicious processes: {len(report['suspicious_processes'])}")
+print(f"External connections: {len(report['external_connections'])}")
+```
+
+## Integration Examples
+
+### Elastic Stack Integration
+
+```python
+from elasticsearch import Elasticsearch
+
+def index_triageir_results(results, es_client, index_name):
+    """Index TriageIR results in Elasticsearch"""
+    
+    # Index processes
+    for process in results['artifacts']['running_processes']:
+        doc = {
+            '@timestamp': results['scan_metadata']['scan_start_utc'],
+            'hostname': results['scan_metadata']['hostname'],
+            'artifact_type': 'process',
+            'process': process
+        }
+        es_client.index(index=index_name, body=doc)
+    
+    # Index network connections
+    for conn in results['artifacts']['network_connections']:
+        doc = {
+            '@timestamp': results['scan_metadata']['scan_start_utc'],
+            'hostname': results['scan_metadata']['hostname'],
+            'artifact_type': 'network_connection',
+            'connection': conn
+        }
+        es_client.index(index=index_name, body=doc)
+
+# Usage
+es = Elasticsearch(['localhost:9200'])
+with open('scan_results.json') as f:
+    results = json.load(f)
+
+index_triageir_results(results, es, 'triageir-artifacts')
+```
+
+### Jupyter Notebook Analysis
+
+```python
+import pandas as pd
+import matplotlib.pyplot as plt
+
+# Load TriageIR results
+with open('scan_results.json') as f:
+    results = json.load(f)
+
+# Convert processes to DataFrame
+processes_df = pd.DataFrame(results['artifacts']['running_processes'])
+
+# Analyze process memory usage
+plt.figure(figsize=(12, 6))
+plt.subplot(1, 2, 1)
+processes_df['memory_usage'].hist(bins=50)
+plt.title('Process Memory Usage Distribution')
+plt.xlabel('Memory Usage (bytes)')
+
+# Analyze process start times
+plt.subplot(1, 2, 2)
+processes_df['start_time'] = pd.to_datetime(processes_df['start_time'])
+processes_df.set_index('start_time').resample('H').size().plot()
+plt.title('Process Start Times by Hour')
+plt.xlabel('Time')
+plt.ylabel('Number of Processes Started')
+
+plt.tight_layout()
+plt.show()
+
+# Find processes without hashes (potentially suspicious)
+unsigned_processes = processes_df[processes_df['sha256_hash'].isna()]
+print(f"Found {len(unsigned_processes)} unsigned processes:")
+print(unsigned_processes[['name', 'executable_path']].to_string())
+```
+
+## Troubleshooting Examples
+
+### Permission Issues
+
+```cmd
+# Test with minimal permissions
+triageir-cli.exe --only system --output permission_test.json
+
+# Check what failed
+type permission_test.json | find "collection_log"
+```
+
+### Performance Issues
+
+```cmd
+# Minimal resource scan
+triageir-cli.exe --skip-hashes --skip-events --only system,processes --output minimal.json
+
+# Monitor resource usage during scan
+powershell -command "Get-Process triageir-cli | Select-Object CPU,WorkingSet,VirtualMemorySize"
+```
+
+### Large System Optimization
+
+```cmd
+# Staged collection for large systems
+triageir-cli.exe --only system,processes --output stage1.json
+triageir-cli.exe --only network,persistence --output stage2.json
+triageir-cli.exe --only events --max-events 2000 --output stage3.json
+triageir-cli.exe --only execution --output stage4.json
+```
+
+### Error Diagnosis
+
+```cmd
+# Verbose output with error details
+triageir-cli.exe --verbose --output debug_scan.json 2> error_log.txt
+
+# Check collection log for issues
+python -c "import json; data=json.load(open('debug_scan.json')); [print(f'{log[\"level\"]}: {log[\"message\"]}') for log in data['collection_log'] if log['level'] in ['ERROR', 'WARN']]"
+```
+
+---
+
+**Note**: All examples assume TriageIR CLI is in PATH or current directory. Adjust paths as needed for your installation.
 
 ```bash
 # Phase 1: Immediate threat assessment (< 30 seconds)
