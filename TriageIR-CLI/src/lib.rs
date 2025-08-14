@@ -9,3 +9,6 @@ pub mod event_logs;
 pub mod prefetch;
 pub mod shimcache;
 pub mod forensic_types;
+
+#[cfg(test)]
+pub mod test_error_scenarios;
