@@ -1,0 +1,427 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://triageir.org/schemas/output/v1.0.0",
+  "title": "TriageIR Output Schema",
+  "description": "JSON schema for TriageIR forensic collection output",
+  "type": "object",
+  "required": ["scan_metadata", "artifacts", "collection_log"],
+  "properties": {
+    "scan_metadata": {
+      "$ref": "#/definitions/ScanMetadata"
+    },
+    "artifacts": {
+      "$ref": "#/definitions/Artifacts"
+    },
+    "collection_log": {
+      "type": "array",
+      "items": {
+        "$ref": "#/definitions/LogEntry"
+      }
+    }
+  },
+  "definitions": {
+    "ScanMetadata": {
+      "type": "object",
+      "required": ["scan_id", "scan_start_utc", "scan_duration_ms", "hostname", "os_version", "cli_version"],
+      "properties": {
+        "scan_id": {
+          "type": "string",
+          "format": "uuid",
+          "description": "Unique identifier for this scan (UUID v4)"
+        },
+        "scan_start_utc": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Scan start time in UTC (ISO 8601)"
+        },
+        "scan_duration_ms": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Total scan duration in milliseconds"
+        },
+        "hostname": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Target system hostname"
+        },
+        "os_version": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Operating system version string"
+        },
+        "cli_version": {
+          "type": "string",
+          "pattern": "^\\d+\\.\\d+\\.\\d+",
+          "description": "TriageIR CLI version used for collection"
+        }
+      }
+    },
+    "Artifacts": {
+      "type": "object",
+      "required": ["system_info", "running_processes", "network_connections", "persistence_mechanisms", "event_logs", "execution_evidence"],
+      "properties": {
+        "system_info": {
+          "$ref": "#/definitions/SystemInfo"
+        },
+        "running_processes": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/Process"
+          }
+        },
+        "network_connections": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/NetworkConnection"
+          }
+        },
+        "persistence_mechanisms": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/PersistenceMechanism"
+          }
+        },
+        "event_logs": {
+          "$ref": "#/definitions/EventLogs"
+        },
+        "execution_evidence": {
+          "$ref": "#/definitions/ExecutionEvidence"
+        }
+      }
+    },
+    "SystemInfo": {
+      "type": "object",
+      "required": ["uptime_secs", "logged_on_users", "hostname", "os_version", "architecture", "total_memory", "available_memory"],
+      "properties": {
+        "uptime_secs": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "System uptime in seconds"
+        },
+        "logged_on_users": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/LoggedOnUser"
+          }
+        },
+        "hostname": {
+          "type": "string",
+          "minLength": 1
+        },
+        "os_version": {
+          "type": "string",
+          "minLength": 1
+        },
+        "architecture": {
+          "type": "string",
+          "enum": ["x86", "x64", "ARM", "ARM64"]
+        },
+        "total_memory": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "available_memory": {
+          "type": "integer",
+          "minimum": 0
+        }
+      }
+    },
+    "LoggedOnUser": {
+      "type": "object",
+      "required": ["username", "domain", "logon_time", "session_id", "session_type"],
+      "properties": {
+        "username": {
+          "type": "string",
+          "minLength": 1
+        },
+        "domain": {
+          "type": "string",
+          "minLength": 1
+        },
+        "logon_time": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "session_id": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "session_type": {
+          "type": "string",
+          "enum": ["Interactive", "RemoteInteractive", "Service", "Batch", "NetworkCleartext", "NewCredentials", "Network", "Unlock", "CachedInteractive"]
+        }
+      }
+    },
+    "Process": {
+      "type": "object",
+      "required": ["pid", "parent_pid", "name", "command_line", "executable_path", "start_time"],
+      "properties": {
+        "pid": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "parent_pid": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "name": {
+          "type": "string",
+          "minLength": 1
+        },
+        "command_line": {
+          "type": "string"
+        },
+        "executable_path": {
+          "type": "string"
+        },
+        "sha256_hash": {
+          "type": ["string", "null"],
+          "pattern": "^[a-fA-F0-9]{64}$"
+        },
+        "start_time": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "memory_usage": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "cpu_usage": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 100
+        },
+        "loaded_dlls": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/LoadedDll"
+          }
+        }
+      }
+    },
+    "LoadedDll": {
+      "type": "object",
+      "required": ["name", "path"],
+      "properties": {
+        "name": {
+          "type": "string",
+          "minLength": 1
+        },
+        "path": {
+          "type": "string",
+          "minLength": 1
+        },
+        "version": {
+          "type": ["string", "null"]
+        },
+        "size": {
+          "type": ["integer", "null"],
+          "minimum": 0
+        }
+      }
+    },
+    "NetworkConnection": {
+      "type": "object",
+      "required": ["protocol", "local_address", "remote_address", "state", "owning_pid"],
+      "properties": {
+        "protocol": {
+          "type": "string",
+          "enum": ["TCP", "UDP"]
+        },
+        "local_address": {
+          "type": "string",
+          "pattern": "^.+:\\d+$"
+        },
+        "remote_address": {
+          "type": "string",
+          "pattern": "^.+:\\d+$"
+        },
+        "state": {
+          "type": "string",
+          "enum": ["LISTENING", "ESTABLISHED", "TIME_WAIT", "CLOSE_WAIT", "FIN_WAIT1", "FIN_WAIT2", "SYN_SENT", "SYN_RECV", "LAST_ACK", "CLOSED"]
+        },
+        "owning_pid": {
+          "type": "integer",
+          "minimum": 0
+        }
+      }
+    },
+    "PersistenceMechanism": {
+      "type": "object",
+      "required": ["type", "name", "command", "source"],
+      "properties": {
+        "type": {
+          "type": "string",
+          "enum": ["Registry Run Key", "Scheduled Task", "Service", "Startup Folder", "WMI Event", "DLL Hijacking"]
+        },
+        "name": {
+          "type": "string",
+          "minLength": 1
+        },
+        "command": {
+          "type": "string"
+        },
+        "source": {
+          "type": "string",
+          "minLength": 1
+        },
+        "enabled": {
+          "type": "boolean"
+        },
+        "last_modified": {
+          "type": ["string", "null"],
+          "format": "date-time"
+        }
+      }
+    },
+    "EventLogs": {
+      "type": "object",
+      "required": ["security", "system", "application"],
+      "properties": {
+        "security": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/EventLogEntry"
+          }
+        },
+        "system": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/EventLogEntry"
+          }
+        },
+        "application": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/EventLogEntry"
+          }
+        }
+      }
+    },
+    "EventLogEntry": {
+      "type": "object",
+      "required": ["event_id", "level", "timestamp", "source", "message"],
+      "properties": {
+        "event_id": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "level": {
+          "type": "string",
+          "enum": ["Critical", "Error", "Warning", "Information", "Verbose"]
+        },
+        "timestamp": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "source": {
+          "type": "string",
+          "minLength": 1
+        },
+        "message": {
+          "type": "string"
+        },
+        "user": {
+          "type": ["string", "null"]
+        },
+        "computer": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "ExecutionEvidence": {
+      "type": "object",
+      "required": ["prefetch_files", "shimcache_entries"],
+      "properties": {
+        "prefetch_files": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/PrefetchFile"
+          }
+        },
+        "shimcache_entries": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/ShimcacheEntry"
+          }
+        }
+      }
+    },
+    "PrefetchFile": {
+      "type": "object",
+      "required": ["filename", "executable_name", "run_count", "last_run_time", "file_paths"],
+      "properties": {
+        "filename": {
+          "type": "string",
+          "pattern": "\\.pf$"
+        },
+        "executable_name": {
+          "type": "string",
+          "minLength": 1
+        },
+        "run_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "last_run_time": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "file_paths": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "prefetch_hash": {
+          "type": "string",
+          "pattern": "^[a-fA-F0-9]{8}$"
+        }
+      }
+    },
+    "ShimcacheEntry": {
+      "type": "object",
+      "required": ["path", "last_modified", "file_size"],
+      "properties": {
+        "path": {
+          "type": "string",
+          "minLength": 1
+        },
+        "last_modified": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "file_size": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "executed": {
+          "type": ["boolean", "null"]
+        }
+      }
+    },
+    "LogEntry": {
+      "type": "object",
+      "required": ["timestamp", "level", "message"],
+      "properties": {
+        "timestamp": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "level": {
+          "type": "string",
+          "enum": ["ERROR", "WARN", "INFO", "DEBUG"]
+        },
+        "message": {
+          "type": "string",
+          "minLength": 1
+        },
+        "module": {
+          "type": ["string", "null"]
+        }
+      }
+    }
+  }
+}

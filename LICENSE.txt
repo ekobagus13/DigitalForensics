@@ -1,0 +1,63 @@
+MIT License
+
+Copyright (c) 2024 TriageIR Development Team
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+
+---
+
+THIRD-PARTY LICENSES
+
+This software includes components from the following third-party projects:
+
+Rust Dependencies (TriageIR-CLI):
+- serde: MIT/Apache-2.0 License
+- clap: MIT/Apache-2.0 License
+- tokio: MIT License
+- windows: MIT/Apache-2.0 License
+- sysinfo: MIT License
+- sha2: MIT/Apache-2.0 License
+- uuid: MIT/Apache-2.0 License
+- chrono: MIT/Apache-2.0 License
+- winreg: MIT License
+
+Node.js Dependencies (TriageIR-GUI):
+- electron: MIT License
+- electron-builder: MIT License
+- Various npm packages under MIT, BSD, and Apache licenses
+
+For complete license information of all dependencies, see:
+- TriageIR-CLI/Cargo.lock for Rust dependencies
+- TriageIR-GUI/package-lock.json for Node.js dependencies
+
+---
+
+DISCLAIMER
+
+This software is provided for legitimate digital forensics, incident response,
+and security analysis purposes only. Users are responsible for ensuring
+compliance with all applicable laws and regulations in their jurisdiction.
+
+The authors and contributors of this software:
+- Make no warranties about the completeness or accuracy of collected data
+- Are not responsible for any misuse of this software
+- Recommend proper authorization before scanning any systems
+- Advise following established forensic procedures and chain of custody
+
+Use of this software implies acceptance of these terms and conditions.

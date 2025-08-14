@@ -881,8 +881,145 @@ class PluginManager {
 }
 ```
 
+## Validation and Testing
+
+### JSON Schema Validation
+
+#### Schema File Location
+The complete JSON schema is available at `schemas/triageir-output.schema.json`
+
+#### Validation Examples
+
+**Python Validation**
+```python
+import json
+import jsonschema
+
+# Load schema and data
+with open('schemas/triageir-output.schema.json') as f:
+    schema = json.load(f)
+
+with open('scan_results.json') as f:
+    data = json.load(f)
+
+# Validate
+try:
+    jsonschema.validate(data, schema)
+    print("✓ JSON is valid")
+except jsonschema.ValidationError as e:
+    print(f"✗ Validation error: {e.message}")
+```
+
+**Node.js Validation**
+```javascript
+const Ajv = require('ajv');
+const fs = require('fs');
+
+const ajv = new Ajv();
+const schema = JSON.parse(fs.readFileSync('schemas/triageir-output.schema.json'));
+const data = JSON.parse(fs.readFileSync('scan_results.json'));
+
+const validate = ajv.compile(schema);
+const valid = validate(data);
+
+if (!valid) {
+    console.log('Validation errors:', validate.errors);
+}
+```
+
+### API Testing
+
+#### CLI Testing
+```bash
+# Test basic functionality
+triageir-cli.exe --help
+echo $? # Should be 0
+
+# Test JSON output
+triageir-cli.exe --output test.json
+python -c "import json; json.load(open('test.json'))" # Should not error
+
+# Test specific modules
+triageir-cli.exe --only processes --output processes.json
+```
+
+#### GUI API Testing
+```javascript
+// Test IPC communication
+const { ipcRenderer } = require('electron');
+
+async function testAPI() {
+    try {
+        const results = await ipcRenderer.invoke('run-cli-scan', {
+            verbose: true,
+            skipHashes: false
+        });
+        console.log('✓ CLI scan successful');
+        return results;
+    } catch (error) {
+        console.error('✗ CLI scan failed:', error);
+        throw error;
+    }
+}
+```
+
+## Migration Guide
+
+### Upgrading from Previous Versions
+
+#### Version 0.9.x to 1.0.0
+- **Breaking Changes**: 
+  - JSON schema updated with new fields
+  - CLI argument `--format` is now required
+  - GUI IPC API methods renamed
+
+- **Migration Steps**:
+  1. Update JSON parsing code to handle new schema
+  2. Update CLI scripts to include `--format json`
+  3. Update GUI integration code for new IPC methods
+
+#### Backward Compatibility
+```javascript
+// Handle both old and new JSON formats
+function parseResults(data) {
+    if (data.version && data.version < '1.0.0') {
+        return migrateLegacyFormat(data);
+    }
+    return data;
+}
+
+function migrateLegacyFormat(oldData) {
+    return {
+        scan_metadata: {
+            scan_id: oldData.id || generateUUID(),
+            scan_start_utc: oldData.timestamp,
+            // ... other mappings
+        },
+        artifacts: oldData.results,
+        collection_log: oldData.logs || []
+    };
+}
+```
+
+## Appendix: Complete Schema Reference
+
+### Full JSON Schema
+The complete JSON schema is available in the repository at `schemas/triageir-output.schema.json`. Key validation rules:
+
+- All timestamps must be ISO 8601 format
+- SHA-256 hashes must be 64-character hexadecimal strings
+- PIDs must be positive integers
+- IP addresses must be valid IPv4 or IPv6 format
+- File paths must be absolute Windows paths
+
+### Schema Versioning
+- Schema version is embedded in the JSON output
+- Breaking changes increment major version
+- New optional fields increment minor version
+- Bug fixes increment patch version
+
 ---
 
-**Document Version**: 1.0  
+**Document Version**: 1.1  
 **Last Updated**: December 2024  
 **Applies to**: TriageIR v1.0.0 and later

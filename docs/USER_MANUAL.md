@@ -440,6 +440,120 @@ The TriageIR GUI provides an intuitive interface with the following sections:
 
 ---
 
-**Document Version**: 1.0  
+## Appendix A: Troubleshooting Guide
+
+### Common Issues and Solutions
+
+#### CLI Issues
+
+**Issue**: "Access denied" when running CLI
+**Solution**: 
+1. Run Command Prompt as Administrator
+2. Check Windows UAC settings
+3. Verify user has appropriate permissions
+
+**Issue**: CLI executable not found
+**Solution**:
+1. Verify installation path
+2. Check PATH environment variable
+3. Re-download and extract package
+
+**Issue**: JSON output is corrupted
+**Solution**:
+1. Check available disk space
+2. Run with `--verbose` to see detailed errors
+3. Try redirecting output to a different location
+
+#### GUI Issues
+
+**Issue**: GUI fails to start
+**Solution**:
+1. Check system requirements (Windows 10+)
+2. Verify CLI executable is in correct location
+3. Run from command line to see error messages
+
+**Issue**: Scan results not displaying
+**Solution**:
+1. Check JSON output format
+2. Verify CLI completed successfully
+3. Check browser console for JavaScript errors
+
+### Performance Optimization
+
+#### For Large Systems
+- Use `--skip-hashes` to reduce processing time
+- Limit event logs with `--max-events 1000`
+- Use targeted collection with `--only`
+
+#### For Resource-Constrained Systems
+- Run during off-peak hours
+- Close unnecessary applications
+- Use minimal collection options
+
+## Appendix B: File Formats and Schemas
+
+### JSON Schema Validation
+
+The output JSON follows a strict schema. Use the following tools for validation:
+
+```bash
+# Using jsonschema (Python)
+pip install jsonschema
+python -c "import jsonschema, json; jsonschema.validate(json.load(open('results.json')), json.load(open('schema.json')))"
+
+# Using ajv (Node.js)
+npm install -g ajv-cli
+ajv validate -s schema.json -d results.json
+```
+
+### CSV Export Format
+
+When exporting to CSV, data is organized as follows:
+
+- **processes.csv**: Process information with one row per process
+- **network.csv**: Network connections with one row per connection
+- **persistence.csv**: Persistence mechanisms with one row per entry
+- **events.csv**: Event log entries with one row per event
+
+## Appendix C: Integration Examples
+
+### PowerShell Integration
+
+```powershell
+# Run TriageIR and parse results
+$results = & "triageir-cli.exe" | ConvertFrom-Json
+
+# Filter suspicious processes
+$suspicious = $results.artifacts.running_processes | Where-Object {
+    $_.name -match "temp|tmp" -or
+    $_.executable_path -match "\\Users\\.*\\AppData"
+}
+
+# Export to CSV
+$suspicious | Export-Csv -Path "suspicious_processes.csv" -NoTypeInformation
+```
+
+### Python Integration
+
+```python
+import subprocess
+import json
+
+# Run TriageIR CLI
+result = subprocess.run(['triageir-cli.exe'], capture_output=True, text=True)
+data = json.loads(result.stdout)
+
+# Analyze network connections
+external_connections = [
+    conn for conn in data['artifacts']['network_connections']
+    if not conn['remote_address'].startswith(('127.', '192.168.', '10.', '172.'))
+]
+
+print(f"Found {len(external_connections)} external connections")
+```
+
+---
+
+**Document Version**: 1.1  
 **Last Updated**: December 2024  
 **Applies to**: TriageIR v1.0.0 and later
