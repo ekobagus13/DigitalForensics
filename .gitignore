@@ -1,5 +1,40 @@
-node_modules
-.vscode
-.kiro
+# Build artifacts
+target/
+node_modules/
+dist/
+build/
+
+# IDE and editor files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Development files
+.kiro/
 package-lock.json
-target
+Cargo.lock
+
+# Test results and temporary files
+test-results/
+*.tmp
+*.temp
+*.log
+*.pdb
+*.exe.config
+
+# OS generated files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Windows specific
+*.exe
+*.dll
+!TriageIR-CLI/target/release/triageir-cli.exe
+!TriageIR-GUI/dist/*.exe
